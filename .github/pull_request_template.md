@@ -1,13 +1,21 @@
-## Summary
+## Result
 
-## Compatibility and security
+Describe the resulting behavior and why it is needed.
 
-- Exported API/default/error/ordering impact:
-- Credential, tenant, payload, egress, or telemetry impact:
-- Request and response ownership impact:
+## Compatibility And Delivery
 
-## Verification
+Describe material compatibility, migration, rollout, or risk consequences.
+Omit topics that do not apply.
 
-- [ ] `make check`
-- [ ] `CHANGELOG.md` updated
-- [ ] Documentation updated
+## Specification Decisions
+
+For parsing, validation, serialization, resolution, canonicalization,
+transport, or protocol changes, list:
+
+- affected decision identifiers;
+- changed normative sources, registries, fixtures, or errata;
+- selected observable behavior and alternatives considered;
+- compatibility and wire consequences;
+- executable conformance and interoperability evidence.
+
+State `Not applicable` only when no specification-backed behavior can change.

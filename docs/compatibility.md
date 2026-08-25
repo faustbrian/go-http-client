@@ -1,6 +1,6 @@
 # Compatibility Policy
 
-The module follows semantic versioning. Before v1, minor releases may adjust
+The module follows semantic versioning. Major releases may adjust
 exported APIs with documented migration notes; patch releases remain focused on
 compatible fixes. At v1, removing or changing an exported type, function,
 method, interface requirement, constant meaning, or sentinel matching contract

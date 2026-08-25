@@ -1,44 +1,55 @@
 # Contributing
 
-Thank you for improving `http-client`. Open an issue before a large API or
-behavior change so compatibility, ownership, and policy semantics can be
-agreed before implementation.
+## Before Editing
 
-## Development
+1. Read [`AGENTS.md`](AGENTS.md) and the affected module's goals and docs.
+2. Run `make inventory` and the narrow baseline gate for the module.
+3. Identify owned dependencies and reverse dependants in `modules.json`.
+4. Preserve unrelated work and generated/corpus provenance.
 
-Use the Go version declared in `go.mod`. Keep changes focused, update
-`CHANGELOG.md`, add behavior-focused tests, and preserve ordinary `net/http`
-composition. New defaults must be finite and security-sensitive behavior must
-remain explicit.
+## Changes
 
-Run the complete local gate before submitting a pull request:
+Keep commits focused and conventional. Update every affected changelog with
+the behavior and migration impact. Public API changes require compatibility
+evidence and documentation. Specification behavior requires a decision record,
+fixture coverage, and interoperability evidence.
 
-```console
-make check
+New direct dependencies and dependency updates must follow the
+[dependency governance policy](docs/dependency-governance.md). Package-local
+update bots are forbidden; the root policy owns every module and action update.
+
+Specification-backed changes must follow the
+[specification governance contract](docs/specification-governance.md), update
+the affected stable decision entries, and complete the Specification Decisions
+section of the pull request template. An unresolved interpretation or stale
+source pin is release-blocking; peer behavior cannot silently select policy.
+
+Do not add package-local workflows, permanent replacements, machine-specific
+paths, bypass flags, broad mutation exclusions, or aggregate quality metrics
+that hide a failing package.
+
+## Verification
+
+Run during development:
+
+```bash
+make inventory
+make specification-decisions
+make check MODULES=pkg/<library>
 ```
 
-This includes formatting, vet, lint, normal and race tests, 100% production
-coverage, fuzz smoke tests, allocation-reporting benchmarks, documentation,
-module integrity, vulnerability scanning, and `GO-SAFETY-1`.
+Before submitting a repository-wide change:
 
-Commits use a conventional subject and a body explaining why. Pull requests
-must describe compatibility impact, ownership changes, security implications,
-and the exact verification performed.
+```bash
+make ci-changed BASE=origin/main
+```
 
-## Review expectations
+The full scheduled and release gate is `make ci`. Report every unavailable or
+failing command; do not describe partial results as release-ready.
 
-Maintainers review exported APIs, defaults, sentinel and typed errors,
-middleware order, retry decisions, response ownership, telemetry labels, and
-fixture schema changes as compatibility-sensitive. A contribution may be
-declined when it belongs in a vendor package or replaces standard HTTP
-semantics with an untyped abstraction.
+## Adding A Module
 
-Changes to parsing, serialization, authentication, redirects, retries,
-caching, pagination, or protocol metadata must review and update the
-[specification decision register](docs/specification-decisions.md), its pinned
-[conformance matrix](specification/manifest.tsv), and linked executable
-evidence. New ambiguity remains visibly unresolved until maintainers select
-and test an interpretation.
-
-By contributing, you agree that your contribution is licensed under the MIT
-License and to follow the Code of Conduct.
+Follow [module lifecycle procedures](docs/module-lifecycle.md). New modules
+require an explicit purpose, ownership boundary, dependency review, package
+catalog entry, full quality gates, documentation, changelog, license, security
+policy, compatibility plan, and release dry-run.

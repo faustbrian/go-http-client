@@ -1,0 +1,41 @@
+{
+  "schema_version": 3,
+  "reason": "Exact mutation checkpoints retained across history rewrites only when the approved old and replacement package input fingerprints, tool version, and report digest match.",
+  "verifier_migration_review": {
+    "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+    "reason": "Each listed checkpoint was executed with the complete current Gremlins semantic patch set introduced by ac300cf3; the four omitted checkpoints require fresh campaigns.",
+    "reviewed_at": "2026-08-20"
+  },
+  "verifier_migrations": [
+    {
+      "execution_revision": "c09c5268b1facb88317f933913b2e7cf4377948b",
+      "gate_input_digest": "f81c480dd76100ff479d3ad25aa29b8c4acc32b642788101e43aa4666de3ad83",
+      "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+      "gremlins_version": "v0.6.0",
+      "module": ".",
+      "package": ".",
+      "report_sha256": "5ace15eb159a423e87a37e7781e065d821d635af09e796b0131bc738b4cd95b4"
+    }
+  ],
+  "entries": [
+    {
+      "execution_revision": "bae308431eb44a7061a14c37156df6620f51df7f",
+      "gate_input_digest": "be6d11e6dc504fdbe5c59ee3a1381af0ec6af0f4df201d37c13aedd26b59658f",
+      "gremlins_version": "v0.6.0",
+      "module": ".",
+      "package": ".",
+      "replacement_gate_input_digest": "e842faa83cb8d950cefedb356afc845c3147dfbf93ef1032b9bb90a8374d5854",
+      "report_sha256": "84659e907065fa63395aee5bc609e9fccf8f832db3524f6ac1f7cbd76d3346de"
+    },
+    {
+      "module": ".",
+      "package": ".",
+      "execution_revision": "c09c5268b1facb88317f933913b2e7cf4377948b",
+      "gate_input_digest": "f81c480dd76100ff479d3ad25aa29b8c4acc32b642788101e43aa4666de3ad83",
+      "replacement_gate_input_digest": "7133e33fe10735c11faf9e450426d575475b6ae98d773f6ebb20d11877f87e9b",
+      "gremlins_version": "v0.6.0",
+      "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
+      "report_sha256": "5ace15eb159a423e87a37e7781e065d821d635af09e796b0131bc738b4cd95b4"
+    }
+  ]
+}

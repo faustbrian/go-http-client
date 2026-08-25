@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	breaker "github.com/faustbrian/golib/pkg/circuit-breaker"
+	breaker "github.com/faustbrian/go-circuit-breaker"
 )
 
 var (

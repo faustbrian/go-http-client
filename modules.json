@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "repository": "github.com/faustbrian/go-http-client",
+  "go_version": "1.26.6",
+  "modules": [
+    {
+      "directory": ".",
+      "module_path": "github.com/faustbrian/go-http-client",
+      "go_version": "1.26.6",
+      "packages": [
+        {
+          "module_directory": ".",
+          "directory": ".",
+          "name": "httpclient",
+          "import_path": "github.com/faustbrian/go-http-client",
+          "kind": "public",
+          "production": true,
+          "executable": true,
+          "coverage_required": true,
+          "build_required": true,
+          "build_tags": []
+        }
+      ],
+      "purpose": "`http-client` is a policy layer for typed outbound HTTP integrations. It is built on `net/http`, preserves standard requests and responses, and is neutral about vendor models and payload codecs.",
+      "lifecycle": "stable",
+      "kind": "public library",
+      "releasable": true,
+      "family": "integration-and-data-movement",
+      "family_label": "Integration And Data Movement",
+      "family_description": "Bounded external I/O, data movement, provider boundaries, and derived search state.",
+      "family_order": 7,
+      "version": "v1.0.0",
+      "tag_prefix": "v",
+      "owned_dependencies": [
+        "github.com/faustbrian/go-circuit-breaker"
+      ],
+      "reverse_owned_dependencies": [
+        "github.com/faustbrian/go-http-middleware/integration/siblings",
+        "github.com/faustbrian/go-localized",
+        "github.com/faustbrian/go-service/integration/reference-external"
+      ],
+      "external_runtime_dependencies": [
+        "go.uber.org/goleak",
+        "golang.org/x/net",
+        "golang.org/x/oauth2"
+      ],
+      "required_services": [],
+      "build_tags": [],
+      "test_tags": [],
+      "interoperability_tools": [],
+      "specifications": [
+        "RFC 3986 URI Generic Syntax",
+        "RFC 9110 HTTP Semantics",
+        "RFC 9111 HTTP Caching",
+        "RFC 8288 Web Linking",
+        "RFC 7617 Basic HTTP Authentication",
+        "RFC 6750 OAuth 2.0 Bearer Token Usage",
+        "RFC 6749 OAuth 2.0 Authorization Framework",
+        "RFC 6265 HTTP State Management Mechanism",
+        "RFC 8259 JSON",
+        "RFC 8470 HTTP Early Data",
+        "RFC 6585 Additional HTTP Status Codes",
+        "W3C Trace Context Level 1 Recommendation 2021-11-23"
+      ],
+      "conformance_corpora": [
+        "Pinned normative-source matrix and specification decision evidence"
+      ],
+      "provenance": [
+        "specification/manifest.tsv"
+      ],
+      "goal_files": [
+        ".ai/GOAL.md",
+        ".ai/GOAL_HARDEN.md",
+        ".ai/GOAL_RESILIENCE.md",
+        ".ai/GOAL_RESILIENCE_HARDEN.md"
+      ],
+      "goal_status": "implementation-evidence-inventoried",
+      "goal_evidence": [
+        {
+          "file": ".ai/GOAL.md",
+          "requirements_sha256": "46d6f9182c1a8bafdf37a9115a32e3bdabef5be300de602c6ebd41882179adaf",
+          "implementation_evidence": [
+            "CHANGELOG.md",
+            "README.md",
+            "docs/compatibility.md",
+            "docs/hardening.md",
+            "docs/performance.md",
+            "docs/security.md"
+          ],
+          "verification_gates": [
+            "format-check",
+            "tidy-check",
+            "safety",
+            "vet",
+            "test",
+            "race",
+            "coverage",
+            "lint",
+            "staticcheck",
+            "vulnerability",
+            "secrets",
+            "licenses",
+            "sbom",
+            "fuzz",
+            "mutation",
+            "nilaway",
+            "docs",
+            "api",
+            "conformance",
+            "interoperability",
+            "benchmark"
+          ],
+          "implementation_status": "implemented-requires-fresh-verification"
+        },
+        {
+          "file": ".ai/GOAL_HARDEN.md",
+          "requirements_sha256": "bf396cd1676b1ac545a21e7f27f55495b201e7181e5370294683651a79ce6894",
+          "implementation_evidence": [
+            "CHANGELOG.md",
+            "README.md",
+            "docs/compatibility.md",
+            "docs/hardening.md",
+            "docs/performance.md",
+            "docs/security.md"
+          ],
+          "verification_gates": [
+            "format-check",
+            "tidy-check",
+            "safety",
+            "vet",
+            "test",
+            "race",
+            "coverage",
+            "lint",
+            "staticcheck",
+            "vulnerability",
+            "secrets",
+            "licenses",
+            "sbom",
+            "fuzz",
+            "mutation",
+            "nilaway",
+            "docs",
+            "api",
+            "conformance",
+            "interoperability",
+            "benchmark"
+          ],
+          "implementation_status": "implemented-requires-fresh-verification"
+        },
+        {
+          "file": ".ai/GOAL_RESILIENCE.md",
+          "requirements_sha256": "5599d23188a965288bf475ee2d2b1645b145ed752a78a106ba0d07467bc47749",
+          "implementation_evidence": [
+            "CHANGELOG.md",
+            "README.md",
+            "docs/compatibility.md",
+            "docs/hardening.md",
+            "docs/performance.md",
+            "docs/security.md"
+          ],
+          "verification_gates": [
+            "format-check",
+            "tidy-check",
+            "safety",
+            "vet",
+            "test",
+            "race",
+            "coverage",
+            "lint",
+            "staticcheck",
+            "vulnerability",
+            "secrets",
+            "licenses",
+            "sbom",
+            "fuzz",
+            "mutation",
+            "nilaway",
+            "docs",
+            "api",
+            "conformance",
+            "interoperability",
+            "benchmark"
+          ],
+          "implementation_status": "implemented-requires-fresh-verification"
+        },
+        {
+          "file": ".ai/GOAL_RESILIENCE_HARDEN.md",
+          "requirements_sha256": "a4f4b31b1eceb3492dd6fb3433bc41ab62e3f4c6250bf36dec4b5fa0ca45ce70",
+          "implementation_evidence": [
+            "CHANGELOG.md",
+            "README.md",
+            "docs/compatibility.md",
+            "docs/hardening.md",
+            "docs/performance.md",
+            "docs/security.md"
+          ],
+          "verification_gates": [
+            "format-check",
+            "tidy-check",
+            "safety",
+            "vet",
+            "test",
+            "race",
+            "coverage",
+            "lint",
+            "staticcheck",
+            "vulnerability",
+            "secrets",
+            "licenses",
+            "sbom",
+            "fuzz",
+            "mutation",
+            "nilaway",
+            "docs",
+            "api",
+            "conformance",
+            "interoperability",
+            "benchmark"
+          ],
+          "implementation_status": "implemented-requires-fresh-verification"
+        }
+      ],
+      "gates": {
+        "api_compatibility": true,
+        "benchmarks": true,
+        "conformance": true,
+        "coverage": true,
+        "documentation": true,
+        "fuzz": true,
+        "lint": true,
+        "mutation": true,
+        "race": true,
+        "security": true,
+        "tests": true
+      }
+    }
+  ]
+}

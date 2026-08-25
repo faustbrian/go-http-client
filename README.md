@@ -1,10 +1,20 @@
 # http-client
 
+[![CI](https://github.com/faustbrian/go-http-client/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/faustbrian/go-http-client/actions/workflows/ci.yml)
+[![CodeQL](https://img.shields.io/badge/CodeQL-required-blue)](https://github.com/faustbrian/go-http-client/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
+[![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
+[![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-http-client.svg)](https://pkg.go.dev/github.com/faustbrian/go-http-client)
+[![Release](https://img.shields.io/github/v/release/faustbrian/go-http-client?sort=semver)](https://github.com/faustbrian/go-http-client/releases)
+[![Go](https://img.shields.io/badge/go-1.26.6-00ADD8?logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 `http-client` is a policy layer for typed outbound HTTP integrations. It is
 built on `net/http`, preserves standard requests and responses, and is neutral
 about vendor models and payload codecs.
 
-The module is under active pre-v1 development. The current foundation provides
+The module has a stable v1 API. The current foundation provides
 finite transport defaults, immutable request specifications, deterministic
 operation and attempt middleware, origin-bound authentication, explicit
 transport ownership, response lifecycle management, and redacted errors.
@@ -22,7 +32,7 @@ mapped to pinned sources and executable evidence in the
 ## Install
 
 ```console
-go get github.com/faustbrian/golib/pkg/http-client
+go get github.com/faustbrian/go-http-client
 ```
 
 ## Quickstart

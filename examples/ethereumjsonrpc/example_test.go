@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	httpclient "github.com/faustbrian/golib/pkg/http-client"
+	httpclient "github.com/faustbrian/go-http-client"
 )
 
 func Example() {

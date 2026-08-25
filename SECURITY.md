@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Until v1, only the latest commit on `main` is supported. After v1, the latest
+The latest stable v1 release and `main` are supported. The latest
 minor release of the current major version receives security fixes. Older
 release lines may receive fixes at maintainer discretion.
 
