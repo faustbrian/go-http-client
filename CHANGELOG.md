@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Compatibility
+
+- Regenerate the exported API baseline with the repository's Go 1.26
+  toolchain so JSON-backed contracts retain their intended stable identity.
+
 ### Changed
 
 - Exclude intentional nested modules from root local-proxy archives so local,
