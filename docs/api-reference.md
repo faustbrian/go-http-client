@@ -9,7 +9,7 @@ go doc -all github.com/faustbrian/go-http-client
 
 The CI `docs` gate verifies that complete generated reference. The stable API
 is organized by these entry points. The
-[production hardening audit](hardening.md) maps them to threats, defaults,
+[security assurance](security-assurance.md) maps them to threats, defaults,
 evidence, findings, and release gates.
 
 | Area | Primary API |

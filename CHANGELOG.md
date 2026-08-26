@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Replace the oversized README, archived monorepo link, and dated pre-release
+  verdict with a package-owned documentation index and durable security
+  assurance guidance.
+
 ## [1.0.0] - 2026-08-25
 
 ### Compatibility

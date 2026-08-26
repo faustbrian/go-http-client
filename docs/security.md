@@ -30,4 +30,4 @@ message values as metric labels.
 vulnerabilities privately according to the repository `SECURITY.md`.
 
 The maintained threat model, policy matrix, findings, evidence, and release
-verdict are in [production hardening](hardening.md).
+findings are in [security assurance](security-assurance.md).
