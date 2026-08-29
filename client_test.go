@@ -232,6 +232,21 @@ func TestNewClientRejectsUnknownTransportOwnership(t *testing.T) {
 	}
 }
 
+func TestNewClientPreservesConfiguredTransport(t *testing.T) {
+	t.Parallel()
+
+	transport := &borrowedTransport{}
+	client, err := New(Config{Transport: transport})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+
+	if client.HTTPClient().Transport != transport {
+		t.Fatalf("Transport = %T, want configured transport", client.HTTPClient().Transport)
+	}
+}
+
 func TestClientRejectsNilRequest(t *testing.T) {
 	t.Parallel()
 

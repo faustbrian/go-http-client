@@ -254,7 +254,14 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 		if response != nil {
 			statusCode = response.StatusCode
 		}
-		if attempt == options.maximumAttempts || !bodyReplayable {
+		canRetry := true
+		if attempt == options.maximumAttempts {
+			canRetry = false
+		}
+		if !bodyReplayable {
+			canRetry = false
+		}
+		if !canRetry {
 			closeErr := drainAndCloseRetryResponse(response)
 			pendingResponse = nil
 

@@ -22,5 +22,5 @@ prefer anonymity. Disclosure timing is coordinated after a fix is available.
 The module follows `GO-SAFETY-1`: production code contains no `unsafe`, cgo,
 or `go:linkname`. Default clients use finite timeouts. Credentials are
 same-origin by default, error and telemetry surfaces exclude payload secrets,
-and persisted HTTP fixtures require sanitization. Run `make safety` for module
+and persisted HTTP fixtures require sanitization. Run `make check` for module
 integrity, vulnerability scanning, and the source audit.

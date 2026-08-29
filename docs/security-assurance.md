@@ -1,7 +1,7 @@
-# Production Hardening Audit
+# Security assurance
 
-This document records the hostile-network audit for the current pre-v1 tree.
-It is a release artifact, not a claim that arbitrary caller callbacks, custom
+This document records the package's hostile-network threat model, policy
+matrix, and resolved findings. It is not a claim that arbitrary caller callbacks, custom
 transports, or downstream vendor code are safe without their own review.
 
 ## Threat model
@@ -153,36 +153,10 @@ threshold.
 | Telemetry, trace/baggage isolation, fixtures, migration, corruption, and large replay/record | `observability_test.go`, `fixture_replay_test.go`, `fixture_record_test.go`, `fixture_persistence_test.go`, hostile fixture cases, and large-fixture benchmarks |
 | Coverage, race, leaks, fuzz, examples, workflows, dependencies, and vulnerabilities | `make check`, root `goleak` `TestMain`, executable output examples, `actionlint`, `shellcheck`, `go mod verify`, and `govulncheck` |
 
-### Final command evidence
-
-On 2026-07-16, Go 1.26.5 on darwin/arm64 produced:
-
-- `go test ./... -count=10`: passed all packages ten times with no failure;
-- `go test -json ./... -count=1`: passed with zero skipped tests;
-- `go list -m -u -mod=readonly all`: direct dependencies were current after
-  refreshing `circuit-breaker`; and
-- `make check`: passed format, vet, lint with zero issues, normal/race/fresh
-  leak tests, 100.0% production coverage, seven fuzz targets, every benchmark,
-  docs, `actionlint`, ShellCheck, module verification, vulnerability scanning
-  with no findings, and `GO-SAFETY-1`.
-
-## Release verdict
-
-**Ready for pre-v1 release as audited on 2026-07-16.** The complete
-`make check` gate and requirement-by-requirement completion pass succeeded on
-the audited implementation. No open finding meets a release-blocker
-criterion. The explicit caller duties in the policy matrix remain part of the
-public contract; using a custom transport, direct `HTTPClient()`, insecure auth
-opt-in, or caller extension port transfers the documented guarantee to that
-caller.
+## Residual risks
 
 Remaining risks are caller-provided transport and extension correctness,
 vendor-specific policy choices, environment-specific proxy/root configuration,
 and workload tuning. Fuzz runs are bounded smoke evidence rather than a proof
 over every input, and benchmark values are comparative only; neither weakens
 the finite runtime policies enforced by the package.
-
-Any future credential leak, unsafe retry, unbounded work, body/goroutine leak,
-SSRF bypass, cache isolation failure, race, panic from hostile input, flaky
-network proof, misleading timeout statement, vulnerability, or incomplete
-required evidence blocks release again.
