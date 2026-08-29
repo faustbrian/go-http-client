@@ -89,8 +89,10 @@ contracts.
 
 ## Development
 
-Run `make check` for the repository contract. Network, interoperability, and
-performance changes must also pass their applicable focused gates.
+Run `make inventory` for manifest consistency, `make check` for the complete
+shared repository contract, and `make ci` for both repository and module gates.
+The pinned `go-library-tools` release in `.golib.yaml` owns generic
+verification; package-specific HTTP conformance remains in the repository.
 
 ## License
 

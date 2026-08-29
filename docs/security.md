@@ -25,7 +25,7 @@ breakers, transports, and metrics by the identity dimensions required by the
 application. Never use tenant, credential, cursor, raw path, query, or vendor
 message values as metric labels.
 
-`make safety` verifies module checksums, runs `govulncheck`, and enforces
+`make check` verifies module checksums, runs `govulncheck`, and enforces
 `GO-SAFETY-1`: no production `unsafe`, cgo, or `go:linkname`. Report suspected
 vulnerabilities privately according to the repository `SECURITY.md`.
 

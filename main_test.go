@@ -1,8 +1,11 @@
 package httpclient
 
 import (
+	"context"
 	"errors"
+	"net"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -13,6 +16,18 @@ func TestMain(main *testing.M) {
 	http.DefaultTransport = TransportFunc(func(*http.Request) (*http.Response, error) {
 		return nil, errors.New("unexpected use of process-global HTTP transport")
 	})
+	net.DefaultResolver = &net.Resolver{
+		PreferGo: true,
+		Dial: func(context.Context, string, string) (net.Conn, error) {
+			return nil, errors.New("unexpected use of process-global DNS resolver")
+		},
+	}
+	for _, name := range []string{"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"} {
+		_ = os.Setenv(name, "http://127.0.0.1:1")
+	}
+	for _, name := range []string{"NO_PROXY", "no_proxy"} {
+		_ = os.Setenv(name, "127.0.0.1,localhost,::1")
+	}
 	goleak.VerifyTestMain(main)
 }
 

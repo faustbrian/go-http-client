@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replace copied repository verification tooling with the pinned
+  `go-library-tools` v1.0.7 contract while preserving the API baseline,
+  mutation checkpoints, HTTP conformance tests, and package fixtures.
+
 ### Documentation
 
 - Replace the oversized README, archived monorepo link, and dated pre-release

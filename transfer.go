@@ -31,7 +31,7 @@ const (
 	maximumTransferBytes        = 1 << 40
 	defaultProgressInterval     = 100 * time.Millisecond
 	defaultProgressBytes        = 64 << 10
-	transferBufferBytes         = 32 << 10
+	transferBufferBytes         = 32_768
 )
 
 // DigestAlgorithm identifies an explicitly supported transfer digest.

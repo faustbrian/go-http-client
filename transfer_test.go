@@ -53,6 +53,21 @@ func TestCopyResponseStreamsWithDigestProgressAndClosure(t *testing.T) {
 	}
 }
 
+func TestCopyResponseProvidesNonEmptyTransferBuffer(t *testing.T) {
+	response := &http.Response{
+		StatusCode: http.StatusOK, Header: make(http.Header),
+		Body: io.NopCloser(&transferBufferProbeReader{}), ContentLength: -1,
+	}
+	var destination bytes.Buffer
+	result, err := CopyResponse(context.Background(), response, &destination, TransferOptions{MaximumBytes: 64})
+	if err != nil {
+		t.Fatalf("copy response: %v", err)
+	}
+	if result.Bytes != 1 || destination.String() != "x" {
+		t.Fatalf("result = %#v, destination %q", result, destination.String())
+	}
+}
+
 func TestCopyResponseEnforcesFiniteLengthAndDigest(t *testing.T) {
 	t.Parallel()
 
@@ -443,7 +458,27 @@ type fixedChunkTransferReader struct {
 	maximum int
 }
 
+type transferBufferProbeReader struct {
+	read bool
+}
+
+func (reader *transferBufferProbeReader) Read(buffer []byte) (int, error) {
+	if len(buffer) == 0 {
+		return 0, errors.New("transfer buffer is empty")
+	}
+	if reader.read {
+		return 0, io.EOF
+	}
+	reader.read = true
+	buffer[0] = 'x'
+
+	return 1, nil
+}
+
 func (reader *fixedChunkTransferReader) Read(buffer []byte) (int, error) {
+	if len(buffer) == 0 {
+		return 0, errors.New("transfer buffer is empty")
+	}
 	if len(reader.content) == 0 {
 		return 0, io.EOF
 	}
@@ -455,6 +490,9 @@ func (reader *fixedChunkTransferReader) Read(buffer []byte) (int, error) {
 }
 
 func (reader *transferSequenceReader) Read(buffer []byte) (int, error) {
+	if len(buffer) == 0 {
+		return 0, errors.New("transfer buffer is empty")
+	}
 	if len(reader.content) == 0 {
 		return 0, reader.terminal
 	}
