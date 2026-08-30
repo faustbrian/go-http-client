@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "decisions": [
+    {
+      "id": "HTTPCLIENT-DEC-001",
+      "authoritative_sources": [
+        "rfc3986"
+      ],
+      "executable_evidence": [
+        "TestNewRequestSpecResolvesSameOriginReference",
+        "TestNewRequestSpecRejectsUnsafeBaseOrReference",
+        "TestRequestURLValidationContracts"
+      ],
+      "fixtures": [],
+      "fuzz": [
+        "FuzzRequestSpecURL"
+      ],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Resolve generic references and then require a valid fragment-free HTTP or HTTPS URL at the same canonical origin."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-002",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestRequestSpecBuildsLayeredIndependentTrailers",
+        "TestRequestSpecTrailersReachStandardHTTPServer",
+        "TestRequestSpecRejectsUnsafeOrBodylessTrailers"
+      ],
+      "fixtures": [],
+      "fuzz": [
+        "FuzzHeaderValidation"
+      ],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Validate fields, apply explicit immutable layer precedence, preserve repeated-value order, and reject prohibited trailers."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-003",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestAuthenticationMiddlewareReappliesOnlyWithinTrustedOrigin",
+        "TestSessionRedirectPolicyControlsCrossOriginCookies",
+        "TestIdempotencyRedirectPolicyPreservesOnlyMatchingOperationIdentity"
+      ],
+      "fixtures": [],
+      "fuzz": [
+        "FuzzRedirectCredentialBoundary"
+      ],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Use Go redirect mechanics with finite replay, egress, session, identity, and per-attempt trust enforcement."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-004",
+      "authoritative_sources": [
+        "rfc7617"
+      ],
+      "executable_evidence": [
+        "TestCredentialEditorsApplyBasicBearerAndAPIKeys",
+        "TestAuthenticationMiddlewareReappliesOnlyWithinTrustedOrigin",
+        "TestAuthenticationRejectsCleartextCredentialTransport"
+      ],
+      "fixtures": [],
+      "fuzz": [
+        "FuzzAuthenticationInputs"
+      ],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Use standard Basic and Bearer wire forms and explicit API-key placement only on trusted HTTPS attempts."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-005",
+      "authoritative_sources": [
+        "rfc6749"
+      ],
+      "executable_evidence": [
+        "TestClientCredentialsTokenSourceCoordinatesRefreshAndBypassesMiddleware",
+        "TestClientCredentialsTokenSourceSupportsExplicitParameterAuthentication",
+        "TestCachedTokenSourceCoordinatesCancelableWaiters"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Default to Basic client authentication, expose parameter authentication explicitly, and coordinate one bounded cancellable token refresh."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-006",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestRetryReplaysSafeRequestsWithDeterministicBackoff",
+        "TestRetryRequiresReplayableBodyAndExplicitUnsafeOptIn"
+      ],
+      "fixtures": [],
+      "fuzz": [
+        "FuzzRetryPolicy"
+      ],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [
+        "specification/differential.tsv",
+        "specification/retry-peer.sum",
+        "scripts/check-retry-peer.sh"
+      ],
+      "differential_classification": "deliberate policy difference",
+      "public_behavior": [
+        "Retry replayable safe or idempotent methods under finite policy; unsafe methods also require explicit policy and package-applied idempotency."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-007",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestRetryUsesBoundedRetryAfterAndClosesDiscardedResponses",
+        "TestRetryDelayExactBoundaries",
+        "TestRateLimitObservationExactBoundaries",
+        "TestRateLimitHeaderObservationMatrix"
+      ],
+      "fixtures": [],
+      "fuzz": [
+        "FuzzRetryPolicy"
+      ],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Parse Retry-After delay seconds or HTTP dates, handle malformed and past values deterministically, and clamp all waits."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-008",
+      "authoritative_sources": [
+        "rfc9111"
+      ],
+      "executable_evidence": [
+        "TestSharedCacheDoesNotReuseAuthorizationWithoutExplicitPermission",
+        "TestCacheMiddlewareHonorsOnlyIfCachedMaxStaleAndStaleIfError",
+        "TestCacheVaryMatchingNormalizesEquivalentHeaderLineLayout",
+        "TestCacheValidationDoesNotReplaceRepresentationDependentHeaders"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Cache only complete bounded admitted responses with credential isolation, secure variants, constrained revalidation, and explicit stale policy."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-009",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestDefaultTransportDisablesImplicitCompression",
+        "TestCompressionMiddlewareDecodesGzipWithExplicitMetadata",
+        "TestCompressionMiddlewareEnforcesAbsoluteAndRatioBounds",
+        "TestCompressionWorkerStopsWhenAttemptMiddlewareShortCircuits"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Disable implicit transport compression and use explicit middleware with deterministic metadata and bounded decoded size and ratio."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-010",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestWithRangeClonesRequestAndAppliesStrongValidator",
+        "TestValidateRangeResponseContinuesRestartsOrCompletes",
+        "TestRangePolicyRejectsUnsafeRequestsAndMismatchedResponses",
+        "TestRangePolicyParserAndValidatorBoundaries"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Continue only exact matching ranges, restart only when allowed, accept consistent completion, and reject mismatched representation metadata."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-011",
+      "authoritative_sources": [
+        "rfc8288"
+      ],
+      "executable_evidence": [
+        "TestLinkPaginatorParsesAndResolvesRFCLinks",
+        "TestCursorPaginatorPreservesOpaqueCursorExactly"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Parse quoted Link syntax, resolve validated HTTP or HTTPS targets, reject competing next targets, and preserve continuation opaquely."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-012",
+      "authoritative_sources": [
+        "rfc6265"
+      ],
+      "executable_evidence": [
+        "TestSessionCookieJarsAreOptInAndIsolatedPerClient",
+        "TestSessionRedirectPolicyControlsCrossOriginCookies"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Disable cookies by default and give each enabled session an isolated jar with explicit redirect and persistence policy."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-013",
+      "authoritative_sources": [
+        "w3c-trace-context-1"
+      ],
+      "executable_evidence": [
+        "TestW3CTraceContextIsValidatedAndInjectedOnTrustedAttempts",
+        "TestW3CTraceContextPrimitiveBoundaries"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Validate trace context, inject it only on trusted attempts, and apply bounded baggage filtering."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-014",
+      "authoritative_sources": [
+        "rfc8259"
+      ],
+      "executable_evidence": [
+        "TestDecodeJSONResponseStreamsBoundedStrictDocumentAndCloses",
+        "TestDecodeJSONResponseRejectsMediaTypeLimitAndTrailingData",
+        "TestDecodeJSONResponseEmptyAndMalformedSemantics"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Require an allowed JSON media type, one bounded document, explicit empty-body policy, no trailing document, and deterministic closure."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-015",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestIdempotencyKeyIsStableAcrossRetriesAndDistinctAcrossOperations",
+        "TestIdempotencyRedirectPolicyPreservesOnlyMatchingOperationIdentity",
+        "TestCallerContextIdempotencyKeyHasExplicitProvenance"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Bind one provenance-tagged bounded key to an explicit logical operation and never treat caller header presence alone as retry proof."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-016",
+      "authoritative_sources": [
+        "rfc8288"
+      ],
+      "executable_evidence": [
+        "TestCursorPaginatorPreservesOpaqueCursorExactly",
+        "TestLinkPaginatorParsesAndResolvesRFCLinks"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Preserve opaque continuation, reject cycles, and enforce finite page, item, byte, elapsed-time, and empty-page policy."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-017",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestPipelineExecutesNestedLifecycleInDeterministicOrder",
+        "TestPipelineRunsAttemptScopeForEveryAttempt",
+        "TestPipelineResponseReplacementClosesSupersededBody",
+        "TestPipelineContainsMiddlewareAndTransportPanics"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Run operation scope once and attempt scope for each retry or redirect under deterministic layering, panic containment, and response ownership."
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-018",
+      "authoritative_sources": [
+        "rfc9110"
+      ],
+      "executable_evidence": [
+        "TestRequestSpecBuildsIndependentReplayableByteBodies",
+        "TestRequestSpecStreamingBodyIsExplicitlyOneShot",
+        "TestClassifyResponseLeavesAcceptedBodyCallerOwned",
+        "TestPipelineResponseReplacementClosesSupersededBody",
+        "TestPipelineClosesResponsesReturnedWithErrors"
+      ],
+      "fixtures": [],
+      "fuzz": [],
+      "interoperability_evidence": [],
+      "interoperability_classification": "not assessed",
+      "differential_evidence": [],
+      "differential_classification": "not assessed",
+      "public_behavior": [
+        "Replay only explicit replayable bodies, keep streams one-shot, leave accepted bodies caller-owned, and close internally discarded bodies."
+      ]
+    }
+  ]
+}
