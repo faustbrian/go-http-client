@@ -4,7 +4,8 @@
     {
       "id": "HTTPCLIENT-DEC-001",
       "authoritative_sources": [
-        "rfc3986"
+        "rfc3986",
+        "rfc9110"
       ],
       "executable_evidence": [
         "TestNewRequestSpecResolvesSameOriginReference",
@@ -70,7 +71,9 @@
     {
       "id": "HTTPCLIENT-DEC-004",
       "authoritative_sources": [
-        "rfc7617"
+        "rfc7617",
+        "rfc6750",
+        "rfc9110"
       ],
       "executable_evidence": [
         "TestCredentialEditorsApplyBasicBearerAndAPIKeys",
@@ -112,7 +115,9 @@
     {
       "id": "HTTPCLIENT-DEC-006",
       "authoritative_sources": [
-        "rfc9110"
+        "rfc9110",
+        "rfc8470",
+        "rfc6585"
       ],
       "executable_evidence": [
         "TestRetryReplaysSafeRequestsWithDeterministicBackoff",
@@ -280,7 +285,8 @@
     {
       "id": "HTTPCLIENT-DEC-014",
       "authoritative_sources": [
-        "rfc8259"
+        "rfc8259",
+        "rfc9110"
       ],
       "executable_evidence": [
         "TestDecodeJSONResponseStreamsBoundedStrictDocumentAndCloses",
