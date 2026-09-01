@@ -32,9 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Replace copied repository tooling with the checksum-pinned
-  `go-library-tools` v1.0.13 contract while retaining package-owned policy and
-  verification evidence.
+- Adopt the checksum-verified `go-library-tools` v1.2.0 CLI and immutable
+  shared workflow so local and hosted gates enforce specification governance
+  while retaining package-owned policy and verification evidence.
 
 ### Documentation
 
