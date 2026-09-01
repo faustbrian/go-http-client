@@ -447,6 +447,34 @@ func TestRetryAttemptNumbersAdvanceAndStop(t *testing.T) {
 	}
 }
 
+func TestRetryStopsAtMaximumAttemptsWithReplayableRequest(t *testing.T) {
+	t.Parallel()
+
+	request, _ := http.NewRequest(http.MethodGet, "https://api.example.test", nil)
+	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+	maximumAttempts := 2
+	options := resolvedRetryOptions{
+		maximumAttempts: maximumAttempts,
+		baseDelay:       time.Nanosecond,
+		maximumDelay:    time.Nanosecond,
+		clock:           clock,
+		jitter:          RetryJitterFunc(func(delay time.Duration) time.Duration { return delay }),
+		policy: RetryPolicyFunc(func(attempt RetryAttempt) bool {
+			return attempt.Attempt <= maximumAttempts
+		}),
+	}
+	attempts := 0
+	_, err := executeRetry(request, func(*http.Request) (*http.Response, error) {
+		attempts++
+		return nil, errors.New("temporary")
+	}, options)
+	var exhausted *RetryExhaustedError
+	if !errors.As(err, &exhausted) || exhausted.Attempts != options.maximumAttempts ||
+		attempts != options.maximumAttempts {
+		t.Fatalf("retry exhaustion = %#v, attempts = %d, want %d", err, attempts, options.maximumAttempts)
+	}
+}
+
 func TestRetryElapsedBudgetExactBoundaries(t *testing.T) {
 	t.Parallel()
 

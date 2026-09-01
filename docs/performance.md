@@ -13,7 +13,7 @@ caller-provided readers and writers for large transfers.
 Run the maintained hot-path benchmarks with allocation reporting:
 
 ```console
-make benchmark
+make check
 ```
 
 They cover direct, instrumented, authenticated, and actually retried requests;
