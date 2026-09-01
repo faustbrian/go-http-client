@@ -7,11 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Specification Decision Records
+
+- HTTPCLIENT-DEC-001 sha256:97631f28c8d6a17ae9747e9fa3c16d5c902dda58bac4c3c07cddb8115e41849f
+- HTTPCLIENT-DEC-002 sha256:0dddb9fae23b8fcbda8bdecc8ed05fc74b66632089b5ca57840b1e731e9ba15b
+- HTTPCLIENT-DEC-003 sha256:cdd49ac5871e94a252dba9b396546e67e9e5cc61f9a636f2a89277842d60e28a
+- HTTPCLIENT-DEC-004 sha256:e32a0e50c2b4f42d9242a87bbfde2ec51f72e6ae9c40da9054e6c27cdab45d6b
+- HTTPCLIENT-DEC-005 sha256:50d3457720427b4b10656b99983284388271841156226d62dd8c98d226762f5e
+- HTTPCLIENT-DEC-006 sha256:61d54177f0bee624a4dfd8e207abd7e4773edd4358a94ea3793d016b4aca3c63
+- HTTPCLIENT-DEC-007 sha256:4856c8dbfa149a0f1f88a4beb02ff128299c1fe298ef8e12a3a3e489561b8585
+- HTTPCLIENT-DEC-008 sha256:8a1593f5ff0f594e3a4631b7b53ad3650c212abeca00d20a73997009bd978f7e
+- HTTPCLIENT-DEC-009 sha256:06a81dfa129c2246eafe7762596a87d9b43576cdbc0df7eb975c272202efbf5f
+- HTTPCLIENT-DEC-010 sha256:9aef52b08a239291beebd988ae2657c014a6134f56b43c7ca84af652b2f7e3ad
+- HTTPCLIENT-DEC-011 sha256:ea9bb215ae9507866c64cce17f07ff665d950b2c11090e105f6d477ea3dc929b
+- HTTPCLIENT-DEC-012 sha256:58c67f769e1005593db92f21b67a53b537bc718dae1da292150eabe758b00397
+- HTTPCLIENT-DEC-013 sha256:c192d4d4787fa08ae696957a471e85441d8b350ebe115d271553198c11724a4b
+- HTTPCLIENT-DEC-014 sha256:81e37fad9a73b7249ea62ba9d5cd90b754cb68abf2d25ae11a44c3b2e1f570af
+- HTTPCLIENT-DEC-015 sha256:68f8acef8d28e36c4d4aac7a41389ad88bb0bb7575988aea21402e68a77835e2
+- HTTPCLIENT-DEC-016 sha256:abed5656bcbc553f7866271dd3881a39aa6d31b1e33e0a4bc9fa5f428105fd40
+- HTTPCLIENT-DEC-017 sha256:dc83d6dfa8316a43a44a04f0fec45f733b1037dbe617c4ce95e1ad442b20d45f
+- HTTPCLIENT-DEC-018 sha256:588fb10a30c769f05ee4fe1fc82ddf25df91219e05fbdab23783cbdaf709fe08
+
+[Specification decision register](docs/specification-decisions.md)
+
 ### Changed
 
-- Replace copied repository verification tooling with the pinned
-  `go-library-tools` v1.0.7 contract while preserving the API baseline,
-  mutation checkpoints, HTTP conformance tests, and package fixtures.
+- Adopt the checksum-verified `go-library-tools` v1.2.0 CLI and immutable
+  shared workflow so local and hosted gates enforce specification governance
+  while retaining package-owned policy and verification evidence.
 
 ### Documentation
 

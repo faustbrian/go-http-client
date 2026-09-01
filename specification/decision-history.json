@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "id": "HTTPCLIENT-DEC-001",
+      "digests": [
+        "97631f28c8d6a17ae9747e9fa3c16d5c902dda58bac4c3c07cddb8115e41849f"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-002",
+      "digests": [
+        "0dddb9fae23b8fcbda8bdecc8ed05fc74b66632089b5ca57840b1e731e9ba15b"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-003",
+      "digests": [
+        "cdd49ac5871e94a252dba9b396546e67e9e5cc61f9a636f2a89277842d60e28a"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-004",
+      "digests": [
+        "e32a0e50c2b4f42d9242a87bbfde2ec51f72e6ae9c40da9054e6c27cdab45d6b"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-005",
+      "digests": [
+        "50d3457720427b4b10656b99983284388271841156226d62dd8c98d226762f5e"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-006",
+      "digests": [
+        "61d54177f0bee624a4dfd8e207abd7e4773edd4358a94ea3793d016b4aca3c63"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-007",
+      "digests": [
+        "4856c8dbfa149a0f1f88a4beb02ff128299c1fe298ef8e12a3a3e489561b8585"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-008",
+      "digests": [
+        "8a1593f5ff0f594e3a4631b7b53ad3650c212abeca00d20a73997009bd978f7e"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-009",
+      "digests": [
+        "06a81dfa129c2246eafe7762596a87d9b43576cdbc0df7eb975c272202efbf5f"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-010",
+      "digests": [
+        "9aef52b08a239291beebd988ae2657c014a6134f56b43c7ca84af652b2f7e3ad"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-011",
+      "digests": [
+        "ea9bb215ae9507866c64cce17f07ff665d950b2c11090e105f6d477ea3dc929b"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-012",
+      "digests": [
+        "58c67f769e1005593db92f21b67a53b537bc718dae1da292150eabe758b00397"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-013",
+      "digests": [
+        "c192d4d4787fa08ae696957a471e85441d8b350ebe115d271553198c11724a4b"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-014",
+      "digests": [
+        "81e37fad9a73b7249ea62ba9d5cd90b754cb68abf2d25ae11a44c3b2e1f570af"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-015",
+      "digests": [
+        "68f8acef8d28e36c4d4aac7a41389ad88bb0bb7575988aea21402e68a77835e2"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-016",
+      "digests": [
+        "abed5656bcbc553f7866271dd3881a39aa6d31b1e33e0a4bc9fa5f428105fd40"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-017",
+      "digests": [
+        "dc83d6dfa8316a43a44a04f0fec45f733b1037dbe617c4ce95e1ad442b20d45f"
+      ]
+    },
+    {
+      "id": "HTTPCLIENT-DEC-018",
+      "digests": [
+        "588fb10a30c769f05ee4fe1fc82ddf25df91219e05fbdab23783cbdaf709fe08"
+      ]
+    }
+  ]
+}

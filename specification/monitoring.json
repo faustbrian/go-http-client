@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-08-30",
+  "review_interval_days": 90,
+  "authorities": [
+    {
+      "id": "rfc3986",
+      "kind": "specification",
+      "version": "RFC-3986",
+      "url": "https://www.rfc-editor.org/rfc/rfc3986.txt",
+      "sha256": "3102dae4b68cebe40337730312fcb612297b8928547267e8b3d1ee6002b2d683",
+      "specifications": [
+        "RFC 3986 URI Generic Syntax"
+      ]
+    },
+    {
+      "id": "rfc3986-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=3986&presentation=records",
+      "sha256": "14c0668758374a5cc14cf248292c31f694e6d420f43e135e0fe02427f145b06a",
+      "specifications": [
+        "RFC 3986 URI Generic Syntax"
+      ]
+    },
+    {
+      "id": "rfc9110",
+      "kind": "specification",
+      "version": "RFC-9110",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+      "sha256": "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a",
+      "specifications": [
+        "RFC 9110 HTTP Semantics"
+      ]
+    },
+    {
+      "id": "rfc9110-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=9110&presentation=records",
+      "sha256": "38bd006c96f8963d58573f704c5313a5f81968b90738c03ade0b036ec7bbdf4b",
+      "specifications": [
+        "RFC 9110 HTTP Semantics"
+      ]
+    },
+    {
+      "id": "rfc9111",
+      "kind": "specification",
+      "version": "RFC-9111",
+      "url": "https://www.rfc-editor.org/rfc/rfc9111.txt",
+      "sha256": "aeb52adb3279d5f23dae34f68af11bd5cef0a0aff7ffcd014c9ca93c5302cf3e",
+      "specifications": [
+        "RFC 9111 HTTP Caching"
+      ]
+    },
+    {
+      "id": "rfc9111-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=9111&presentation=records",
+      "sha256": "62a3ca9503a1ce4ec50c9d9da58a08a06060a36f72b796d1aedb6c757507863d",
+      "specifications": [
+        "RFC 9111 HTTP Caching"
+      ]
+    },
+    {
+      "id": "rfc8288",
+      "kind": "specification",
+      "version": "RFC-8288",
+      "url": "https://www.rfc-editor.org/rfc/rfc8288.txt",
+      "sha256": "820f624e0b0884af5c732e8087a65182452e49f2f49cd784ad7c30e16a4fc35d",
+      "specifications": [
+        "RFC 8288 Web Linking"
+      ]
+    },
+    {
+      "id": "rfc8288-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=8288&presentation=records",
+      "sha256": "56250be86ce9674c5bc16141bfe73a7685fc7a0f13a5f882bfa7c020b5273465",
+      "specifications": [
+        "RFC 8288 Web Linking"
+      ]
+    },
+    {
+      "id": "rfc7617",
+      "kind": "specification",
+      "version": "RFC-7617",
+      "url": "https://www.rfc-editor.org/rfc/rfc7617.txt",
+      "sha256": "bc941321da9912fbb1bc92ad1820848ddfd3283dbfbc30f26ea2800bdaf541db",
+      "specifications": [
+        "RFC 7617 Basic HTTP Authentication"
+      ]
+    },
+    {
+      "id": "rfc7617-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=7617&presentation=records",
+      "sha256": "65c35dbd52a095a122e1bd17e5da0dee8c0b6c63bbb2888cb95ee8f598eb2312",
+      "specifications": [
+        "RFC 7617 Basic HTTP Authentication"
+      ]
+    },
+    {
+      "id": "rfc6750",
+      "kind": "specification",
+      "version": "RFC-6750",
+      "url": "https://www.rfc-editor.org/rfc/rfc6750.txt",
+      "sha256": "9dc385cf4ecdd85024e5a95e447ede9230e11700bf35251906b25b37557d604b",
+      "specifications": [
+        "RFC 6750 OAuth 2.0 Bearer Token Usage"
+      ]
+    },
+    {
+      "id": "rfc6750-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=6750&presentation=records",
+      "sha256": "ac9e048669da09d2756ab0b6241cdd493efba61a950d38df292f680ecbeaa7d0",
+      "specifications": [
+        "RFC 6750 OAuth 2.0 Bearer Token Usage"
+      ]
+    },
+    {
+      "id": "rfc6749",
+      "kind": "specification",
+      "version": "RFC-6749",
+      "url": "https://www.rfc-editor.org/rfc/rfc6749.txt",
+      "sha256": "f204fc8661d6c92d2ec6e0b54808f961a9ad26e792f57f312d9528335519bd71",
+      "specifications": [
+        "RFC 6749 OAuth 2.0 Authorization Framework"
+      ]
+    },
+    {
+      "id": "rfc6749-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=6749&presentation=records",
+      "sha256": "c235cd970451565c60f0182dd7cb6cc4ba0eed691c0d42a1a679f95394fcbf3b",
+      "specifications": [
+        "RFC 6749 OAuth 2.0 Authorization Framework"
+      ]
+    },
+    {
+      "id": "rfc6265",
+      "kind": "specification",
+      "version": "RFC-6265",
+      "url": "https://www.rfc-editor.org/rfc/rfc6265.txt",
+      "sha256": "dc4177094813e85a44a7897b892b76bc09160b3a03aea44f0f511f3a98f91933",
+      "specifications": [
+        "RFC 6265 HTTP State Management Mechanism"
+      ]
+    },
+    {
+      "id": "rfc6265-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=6265&presentation=records",
+      "sha256": "f6a48863357f207cd5b120c2a3a556176f4f582999b0b9357e0df9aff92dbf84",
+      "specifications": [
+        "RFC 6265 HTTP State Management Mechanism"
+      ]
+    },
+    {
+      "id": "rfc8259",
+      "kind": "specification",
+      "version": "RFC-8259",
+      "url": "https://www.rfc-editor.org/rfc/rfc8259.txt",
+      "sha256": "61a5378f4255c720beb2a4b4a63b29540147c140f36988bf086291989b4cd2d7",
+      "specifications": [
+        "RFC 8259 JSON"
+      ]
+    },
+    {
+      "id": "rfc8259-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=8259&presentation=records",
+      "sha256": "5819db2e0233addf17ed540db88cf92cbefda5a60c38877e0d4cbf6b876b7cf4",
+      "specifications": [
+        "RFC 8259 JSON"
+      ]
+    },
+    {
+      "id": "rfc8470",
+      "kind": "specification",
+      "version": "RFC-8470",
+      "url": "https://www.rfc-editor.org/rfc/rfc8470.txt",
+      "sha256": "483c316c2b5d2687357fc66e3da5acc153cc4cfe9817d92da8f63b9e21a62974",
+      "specifications": [
+        "RFC 8470 HTTP Early Data"
+      ]
+    },
+    {
+      "id": "rfc8470-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=8470&presentation=records",
+      "sha256": "7a6a43ab8b5773a6355a04c96f6112807316fa4dad7386cf2b4b776dd1a550e8",
+      "specifications": [
+        "RFC 8470 HTTP Early Data"
+      ]
+    },
+    {
+      "id": "rfc6585",
+      "kind": "specification",
+      "version": "RFC-6585",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585.txt",
+      "sha256": "f6d55d1b491cd515c35827cf9181753b23b2a68c4df14e56d83dc445b3876e58",
+      "specifications": [
+        "RFC 6585 Additional HTTP Status Codes"
+      ]
+    },
+    {
+      "id": "rfc6585-errata",
+      "kind": "errata",
+      "url": "https://errata.rfc-editor.org/search/?rfc_number=6585&presentation=records",
+      "sha256": "5215260b5d75ca16b2fdb4a6ff480b7208966433d72c62765bb7a055760e1410",
+      "specifications": [
+        "RFC 6585 Additional HTTP Status Codes"
+      ]
+    },
+    {
+      "id": "w3c-trace-context-1",
+      "kind": "recommendation",
+      "version": "W3C-REC-20211123",
+      "url": "https://www.w3.org/TR/2021/REC-trace-context-1-20211123/",
+      "sha256": "9e7228d2a91c5aa4bef6e7f610366a2000274ee51699053e10c8ac3f0b8965be",
+      "specifications": [
+        "W3C Trace Context Level 1 Recommendation 2021-11-23"
+      ]
+    },
+    {
+      "id": "w3c-trace-context-history",
+      "kind": "releases",
+      "url": "https://www.w3.org/standards/history/trace-context/",
+      "sha256": "210f1d71d5a667a18beea7c681e484088023ed8d839106f757b411c644cdfeaf",
+      "specifications": [
+        "W3C Trace Context Level 1 Recommendation 2021-11-23"
+      ]
+    }
+  ]
+}

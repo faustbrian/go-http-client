@@ -13,8 +13,6 @@ import (
 )
 
 func TestDefaultEgressPolicyAllowsPublicHTTPSAndDeniesUnsafeClasses(t *testing.T) {
-	t.Parallel()
-
 	policy, err := NewEgressPolicy(EgressOptions{})
 	if err != nil {
 		t.Fatalf("construct default egress: %v", err)

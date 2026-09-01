@@ -1,0 +1,2 @@
+decision	peer	version	commit	scenario	local	peer_behavior	classification
+HTTPCLIENT-DEC-006	github.com/hashicorp/go-retryablehttp	v0.7.8	e1f5485fe84728709b857cb89e17088894c301d6f	replayable POST receives 503 then 204	one attempt without explicit unsafe idempotency policy	two attempts under DefaultRetryPolicy	deliberate policy difference
