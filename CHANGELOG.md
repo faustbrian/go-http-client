@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Record RFC 9110 Erratum 9162 as behavior-neutral because repeated HTTP field
+  values remain separate and the selected redirect, retry, representation,
+  resume, idempotency, attempt, and replay policies do not depend on universal
+  comma-folding separator spelling.
 - Link the module to the immutable v1.3.0 Golib ecosystem guidance.
 - Replace the oversized README, archived monorepo link, and dated pre-release
   verdict with a package-owned documentation index and durable security

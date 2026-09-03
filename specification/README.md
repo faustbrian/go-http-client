@@ -25,6 +25,20 @@ For an update, download the exact manifest URL, verify provenance, calculate
 decisions and tests, and then update the manifest. A digest change alone MUST
 NOT silently change behavior.
 
+## Upstream review history
+
+### 2026-09-03
+
+- The RFC 9110 errata response advanced from SHA-256
+  `38bd006c96f8963d58573f704c5313a5f81968b90738c03ade0b036ec7bbdf4b`
+  to `1f6790054c0cdb2f2a70a94fa2b9c73b09a4ee0578a32b4a3006ed0ecfaac86d`.
+  The reported Erratum 9162 proposes comma-space rather than comma when field
+  lines are combined. This is behavior-neutral: HTTP client decision 002
+  preserves separate field values and does not universally fold them, while
+  decisions 003, 006, 007, 009, 010, 015, 017, and 018 do not depend on that
+  separator spelling. The immutable RFC 9110 text remains byte-identical, so
+  the selected behavior and decision bindings are unchanged.
+
 ## Decision matrix
 
 | Decision | Source | Executable evidence | Differential status |

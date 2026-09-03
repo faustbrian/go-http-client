@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-08-30",
+  "reviewed_at": "2026-09-03",
   "review_interval_days": 90,
   "authorities": [
     {
@@ -36,7 +36,7 @@
       "id": "rfc9110-errata",
       "kind": "errata",
       "url": "https://errata.rfc-editor.org/search/?rfc_number=9110&presentation=records",
-      "sha256": "38bd006c96f8963d58573f704c5313a5f81968b90738c03ade0b036ec7bbdf4b",
+      "sha256": "1f6790054c0cdb2f2a70a94fa2b9c73b09a4ee0578a32b4a3006ed0ecfaac86d",
       "specifications": [
         "RFC 9110 HTTP Semantics"
       ]
