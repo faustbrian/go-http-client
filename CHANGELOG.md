@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Adopt the checksum-verified `go-library-tools` v1.4.0 CLI and immutable
+  shared workflow so bootstrap-first dependencies are checked against their
+  public module identities before repository gates run.
 - Adopt the checksum-verified `go-library-tools` v1.3.0 CLI, schema-v2 cohesion
   metadata, and repository-local cohesion gate while retaining package-owned
   source and evidence.
@@ -41,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Link the module to the immutable v1.4.0 Golib ecosystem guidance.
 - Record RFC 9110 Erratum 9162 as behavior-neutral because repeated HTTP field
   values remain separate and the selected redirect, retry, representation,
   resume, idempotency, attempt, and replay policies do not depend on universal

@@ -93,8 +93,8 @@ Run `make inventory` for manifest consistency, `make check` for the complete
 shared repository contract, and `make ci` for both repository and module gates.
 The pinned `go-library-tools` release in `.golib.yaml` owns generic
 verification; package-specific HTTP conformance remains in the repository.
-See the versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.3.0/docs/ecosystem/README.md)
-and [package-family selection guidance](https://github.com/faustbrian/go-library-tools/blob/v1.3.0/docs/ecosystem/design-language.md#package-families-and-selection)
+See the versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md)
+and [package-family selection guidance](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection)
 for the shared design language this module follows.
 
 ## License
