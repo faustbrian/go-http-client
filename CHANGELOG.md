@@ -32,12 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Adopt the checksum-verified `go-library-tools` v1.3.0 CLI, schema-v2 cohesion
+  metadata, and repository-local cohesion gate while retaining package-owned
+  source and evidence.
 - Adopt the checksum-verified `go-library-tools` v1.2.0 CLI and immutable
   shared workflow so local and hosted gates enforce specification governance
   while retaining package-owned policy and verification evidence.
 
 ### Documentation
 
+- Link the module to the immutable v1.3.0 Golib ecosystem guidance.
 - Replace the oversized README, archived monorepo link, and dated pre-release
   verdict with a package-owned documentation index and durable security
   assurance guidance.
