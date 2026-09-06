@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -287,6 +288,130 @@ func TestTelemetryPolicyValidationAndObserverIsolation(t *testing.T) {
 	_ = response.Body.Close()
 }
 
+func TestBeginTelemetryObserverValidation(t *testing.T) {
+	var literalNil BeginTelemetryObserver
+	if _, err := New(Config{Telemetry: &TelemetryOptions{
+		BeginObserver: literalNil,
+		Propagator:    W3CTraceContextPropagator{},
+	}}); err != nil {
+		t.Fatalf("literal nil begin observer should be omitted: %v", err)
+	}
+
+	var typedNil *telemetryBeginObserver
+	if _, err := New(Config{Telemetry: &TelemetryOptions{
+		BeginObserver: typedNil,
+	}}); !errors.Is(err, ErrInvalidTelemetry) {
+		t.Fatalf("typed nil begin observer error = %v", err)
+	}
+
+	legacy := &telemetryTestObserver{}
+	begin := &telemetryBeginObserver{}
+	middleware, err := newTelemetryMiddleware(&TelemetryOptions{
+		Observer: legacy, BeginObserver: begin,
+	})
+	if !errors.Is(err, ErrInvalidTelemetry) || middleware != nil {
+		t.Fatalf("conflicting observers = %#v, %v", middleware, err)
+	}
+
+	if middleware, err = newTelemetryMiddleware(&TelemetryOptions{}); !errors.Is(err, ErrInvalidTelemetry) || middleware != nil {
+		t.Fatalf("non-nil empty options = %#v, %v", middleware, err)
+	}
+}
+
+func TestBeginTelemetryObserverReceivesDerivedContextInLifecycleOrder(t *testing.T) {
+	observer := &telemetryRecordingBeginObserver{}
+	transportCalls := 0
+	client, err := New(Config{
+		OperationIdentityGenerator: IdentifierGeneratorFunc(func(context.Context) (GeneratedIdentifier, error) {
+			return GeneratedIdentifier{Value: "operation-1", EntropyBits: 128}, nil
+		}),
+		Telemetry: &TelemetryOptions{
+			BeginObserver: observer,
+			Propagator:    telemetryBeginPropagator{t: t},
+		},
+		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			transportCalls++
+			if scope := request.Context().Value(telemetryBeginContextKey{}); scope != TelemetryAttempt {
+				t.Fatalf("transport context scope = %v, want %q", scope, TelemetryAttempt)
+			}
+			if correlation := request.Header.Get("X-Request-ID"); correlation != "operation-1" {
+				t.Fatalf("transport correlation = %q, want %q", correlation, "operation-1")
+			}
+			return telemetryNoContentResponse(request), nil
+		}),
+	})
+	if err != nil {
+		t.Fatalf("construct begin observer client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+
+	response, err := client.Do(mustTLSRequest(t, "https://example.test"))
+	if err != nil {
+		t.Fatalf("execute observed request: %v", err)
+	}
+	_ = response.Body.Close()
+
+	want := []string{
+		"begin:operation", "begin:attempt", "finish:attempt", "finish:operation",
+	}
+	if transportCalls != 1 || !slices.Equal(observer.calls, want) {
+		t.Fatalf("transport calls = %d, observer calls = %#v, want %#v", transportCalls, observer.calls, want)
+	}
+	if !slices.Equal(observer.beginParents, []TelemetryScope{"", TelemetryOperation}) {
+		t.Fatalf("begin parent scopes = %#v", observer.beginParents)
+	}
+	if !slices.Equal(observer.finishContexts, []TelemetryScope{TelemetryAttempt, TelemetryOperation}) {
+		t.Fatalf("finish context scopes = %#v", observer.finishContexts)
+	}
+	for index, event := range observer.events {
+		wantPhase := []TelemetryPhase{TelemetryStart, TelemetryStart, TelemetryFinish, TelemetryFinish}[index]
+		wantScope := []TelemetryScope{TelemetryOperation, TelemetryAttempt, TelemetryAttempt, TelemetryOperation}[index]
+		wantAttempt := []int{0, 1, 1, 0}[index]
+		wantOutcome := []TelemetryOutcome{"", "", TelemetryOutcomeSuccess, TelemetryOutcomeSuccess}[index]
+		wantClass := []string{"", "", "2xx", "2xx"}[index]
+		if event.Phase != wantPhase || event.Scope != wantScope || event.Attempt != wantAttempt ||
+			event.Outcome != wantOutcome || event.StatusClass != wantClass || event.Cache != TelemetryCacheNone ||
+			event.Method != http.MethodGet || event.Profile != PolicyProfileInteractiveV1 || event.OperationID != "operation-1" {
+			t.Fatalf("begin observer event %d = %#v", index, event)
+		}
+	}
+}
+
+func TestBeginTelemetryObserverNilContextFallbackAndPanicIsolation(t *testing.T) {
+	marker := &struct{}{}
+	caller := context.WithValue(context.Background(), marker, "caller")
+	observer := &telemetryRecordingBeginObserver{returnNil: true}
+	policy := telemetryPolicy{beginObserver: observer}
+	start := TelemetryEvent{Phase: TelemetryStart, Scope: TelemetryOperation}
+	derived := policy.start(caller, start)
+	policy.finish(derived, finishTelemetryEvent(start, nil, nil))
+	if derived.Value(marker) != "caller" || !slices.Equal(observer.calls, []string{"begin:operation", "finish:operation"}) {
+		t.Fatalf("nil derived context fallback = %v, calls = %#v", derived.Value(marker), observer.calls)
+	}
+
+	panicking := &telemetryRecordingBeginObserver{panicBegin: true, panicFinish: true}
+	transportCalls := 0
+	client, err := New(Config{
+		Telemetry: &TelemetryOptions{BeginObserver: panicking},
+		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			transportCalls++
+			return telemetryNoContentResponse(request), nil
+		}),
+	})
+	if err != nil {
+		t.Fatalf("construct panicking begin observer client: %v", err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	response, err := client.Do(mustTLSRequest(t, "https://example.test"))
+	if err != nil {
+		t.Fatalf("observer panic affected request: %v", err)
+	}
+	_ = response.Body.Close()
+	if transportCalls != 1 {
+		t.Fatalf("domain work calls = %d, want 1", transportCalls)
+	}
+}
+
 func TestTelemetryBaggageFilteringPreservesLaterAllowedMembersAndRemovesEmptyHeader(t *testing.T) {
 	header := http.Header{"Baggage": []string{"malformed, safe=kept", "blocked=secret"}}
 	filterBaggage(header, map[string]struct{}{"safe": {}})
@@ -317,11 +442,16 @@ func TestSlogTelemetryObserverLogsOnlySafeFixedFields(t *testing.T) {
 		Outcome: TelemetryOutcomeFailure, StatusClass: "5xx",
 		Cache: TelemetryCacheMiss,
 	}
-	ctx := observer.Start(context.Background(), TelemetryEvent{
+	start := TelemetryEvent{
 		Phase: TelemetryStart, Scope: TelemetryOperation,
 		OperationID: "operation-1", Method: http.MethodPost,
 		Profile: PolicyProfileWebhookDeliveryV1, Cache: TelemetryCacheNone,
-	})
+	}
+	ctx := observer.Begin(context.Background(), start)
+	legacyCtx := observer.Start(context.Background(), start)
+	if legacyCtx == nil {
+		t.Fatal("legacy Start returned a nil context")
+	}
 	observer.Finish(ctx, event)
 	logged := output.String()
 	for _, want := range []string{
@@ -332,6 +462,9 @@ func TestSlogTelemetryObserverLogsOnlySafeFixedFields(t *testing.T) {
 		if !strings.Contains(logged, want) {
 			t.Fatalf("slog output missing %s: %s", want, logged)
 		}
+	}
+	if count := strings.Count(logged, `"phase":"start"`); count != 2 {
+		t.Fatalf("begin and delegated start log count = %d, want 2: %s", count, logged)
 	}
 	for _, secret := range []string{"private/path", "secret=query", "vendor detail", "Authorization"} {
 		if strings.Contains(logged, secret) {
@@ -529,6 +662,59 @@ type telemetryTestObserver struct {
 	events []TelemetryEvent
 }
 
+type telemetryBeginObserver struct{}
+
+func (*telemetryBeginObserver) Begin(ctx context.Context, _ TelemetryEvent) context.Context {
+	return ctx
+}
+
+func (*telemetryBeginObserver) Finish(context.Context, TelemetryEvent) {}
+
+type telemetryBeginContextKey struct{}
+
+type telemetryBeginPropagator struct{ t *testing.T }
+
+func (propagator telemetryBeginPropagator) Inject(ctx context.Context, _ http.Header) {
+	propagator.t.Helper()
+	if scope := ctx.Value(telemetryBeginContextKey{}); scope != TelemetryAttempt {
+		propagator.t.Fatalf("propagator context scope = %v, want %q", scope, TelemetryAttempt)
+	}
+}
+
+type telemetryRecordingBeginObserver struct {
+	calls          []string
+	events         []TelemetryEvent
+	beginParents   []TelemetryScope
+	finishContexts []TelemetryScope
+	returnNil      bool
+	panicBegin     bool
+	panicFinish    bool
+}
+
+func (observer *telemetryRecordingBeginObserver) Begin(ctx context.Context, event TelemetryEvent) context.Context {
+	observer.calls = append(observer.calls, "begin:"+string(event.Scope))
+	parent, _ := ctx.Value(telemetryBeginContextKey{}).(TelemetryScope)
+	observer.beginParents = append(observer.beginParents, parent)
+	observer.events = append(observer.events, event)
+	if observer.panicBegin {
+		panic("begin observer panic")
+	}
+	if observer.returnNil {
+		return nil
+	}
+	return context.WithValue(ctx, telemetryBeginContextKey{}, event.Scope)
+}
+
+func (observer *telemetryRecordingBeginObserver) Finish(ctx context.Context, event TelemetryEvent) {
+	observer.calls = append(observer.calls, "finish:"+string(event.Scope))
+	finished, _ := ctx.Value(telemetryBeginContextKey{}).(TelemetryScope)
+	observer.finishContexts = append(observer.finishContexts, finished)
+	observer.events = append(observer.events, event)
+	if observer.panicFinish {
+		panic("finish observer panic")
+	}
+}
+
 func (observer *telemetryTestObserver) Start(ctx context.Context, event TelemetryEvent) context.Context {
 	observer.record(event)
 	return context.WithValue(ctx, telemetryTestContextKey{}, event.Scope)
@@ -579,11 +765,17 @@ type telemetryBoundaryObserver struct {
 	panicFinish bool
 }
 
+var _ BeginTelemetryObserver = (*telemetryBoundaryObserver)(nil)
+
 func (observer *telemetryBoundaryObserver) Start(ctx context.Context, _ TelemetryEvent) context.Context {
 	if observer.panicStart {
 		panic("observer start")
 	}
 	return nil
+}
+
+func (observer *telemetryBoundaryObserver) Begin(ctx context.Context, event TelemetryEvent) context.Context {
+	return observer.Start(ctx, event)
 }
 
 func (observer *telemetryBoundaryObserver) Finish(context.Context, TelemetryEvent) {

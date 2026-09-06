@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `BeginTelemetryObserver` and `TelemetryOptions.BeginObserver` as the
+  additive observation API while retaining legacy `TelemetryObserver`
+  integrations.
+
 ### Specification Decision Records
 
 - HTTPCLIENT-DEC-001 sha256:97631f28c8d6a17ae9747e9fa3c16d5c902dda58bac4c3c07cddb8115e41849f
@@ -31,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [Specification decision register](docs/specification-decisions.md)
 
 ### Changed
+
+- Make `SlogTelemetryObserver.Begin` the direct start implementation and keep
+  `Start` as a behavior-preserving compatibility delegate.
 
 - Adopt the checksum-verified `go-library-tools` v1.4.0 CLI and immutable
   shared workflow so bootstrap-first dependencies are checked against their

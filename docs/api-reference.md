@@ -24,7 +24,7 @@ evidence, findings, and release gates.
 | Responses and transfers | status classification, typed decoding, drain, compression, range, copy, file, and resume APIs |
 | Scope and profiles | `PolicyScope`, resource keys, built-in profiles, overrides, resolved policy and provenance |
 | Egress and TLS | `EgressPolicy`, `TLSPolicy`, options, typed denial and pin errors |
-| Observability | telemetry observer/propagator ports, events, W3C context, metric labels, and slog adapter |
+| Observability | `BeginTelemetryObserver`, legacy `TelemetryObserver`, propagator ports, events, W3C context, metric labels, and slog adapter |
 | Testing | scripted replay, sanitized recorder, fixture schema, persistence, migrations, and failure categories |
 
 Sentinel errors are compatibility contracts and are documented beside their

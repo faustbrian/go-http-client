@@ -110,6 +110,14 @@ type TelemetryObserver interface {
 	Finish(context.Context, TelemetryEvent)
 }
 
+// BeginTelemetryObserver creates derived trace contexts and receives
+// completions using the ecosystem observation vocabulary. Implementations must
+// be safe for concurrent use.
+type BeginTelemetryObserver interface {
+	Begin(context.Context, TelemetryEvent) context.Context
+	Finish(context.Context, TelemetryEvent)
+}
+
 // TelemetryPropagator injects trace context into a cloned physical-attempt
 // header. Implementations must be safe for concurrent use.
 type TelemetryPropagator interface {
@@ -117,9 +125,11 @@ type TelemetryPropagator interface {
 }
 
 // TelemetryOptions configures optional observation, propagation, and strict
-// trust-boundary header handling.
+// trust-boundary header handling. Observer and BeginObserver are mutually
+// exclusive. Literal nil interfaces are omitted; typed-nil values are invalid.
 type TelemetryOptions struct {
 	Observer          TelemetryObserver
+	BeginObserver     BeginTelemetryObserver
 	Propagator        TelemetryPropagator
 	CorrelationHeader string
 	BaggageAllowlist  []string
@@ -128,6 +138,7 @@ type TelemetryOptions struct {
 
 type telemetryPolicy struct {
 	observer          TelemetryObserver
+	beginObserver     BeginTelemetryObserver
 	propagator        TelemetryPropagator
 	correlationHeader string
 	baggage           map[string]struct{}
@@ -143,10 +154,14 @@ func newTelemetryMiddleware(options *TelemetryOptions) ([]Middleware, error) {
 	if options == nil {
 		return nil, nil
 	}
-	if options.Observer == nil && options.Propagator == nil {
+	if options.Observer != nil && options.BeginObserver != nil {
+		return nil, ErrInvalidTelemetry
+	}
+	if options.Observer == nil && options.BeginObserver == nil && options.Propagator == nil {
 		return nil, ErrInvalidTelemetry
 	}
 	if options.Observer != nil && nilLike(options.Observer) ||
+		options.BeginObserver != nil && nilLike(options.BeginObserver) ||
 		options.Propagator != nil && nilLike(options.Propagator) {
 		return nil, ErrInvalidTelemetry
 	}
@@ -159,7 +174,8 @@ func newTelemetryMiddleware(options *TelemetryOptions) ([]Middleware, error) {
 		return nil, ErrInvalidTelemetry
 	}
 	policy := telemetryPolicy{
-		observer: options.Observer, propagator: options.Propagator,
+		observer: options.Observer, beginObserver: options.BeginObserver,
+		propagator:        options.Propagator,
 		correlationHeader: canonicalCorrelation,
 		baggage:           make(map[string]struct{}, len(options.BaggageAllowlist)),
 		sensitiveHeaders:  []string{"Authorization", "Cookie", "Proxy-Authorization"},
@@ -262,22 +278,32 @@ func (policy telemetryPolicy) prepareAttemptHeaders(request *http.Request, state
 
 func (policy telemetryPolicy) start(ctx context.Context, event TelemetryEvent) (derived context.Context) {
 	derived = ctx
-	if policy.observer == nil {
+	if policy.observer == nil && policy.beginObserver == nil {
 		return derived
 	}
 	defer func() { _ = recover() }()
-	if observed := policy.observer.Start(ctx, event); observed != nil {
+	var observed context.Context
+	if policy.beginObserver != nil {
+		observed = policy.beginObserver.Begin(ctx, event)
+	} else {
+		observed = policy.observer.Start(ctx, event)
+	}
+	if observed != nil {
 		derived = observed
 	}
 	return derived
 }
 
 func (policy telemetryPolicy) finish(ctx context.Context, event TelemetryEvent) {
-	if policy.observer == nil {
+	if policy.observer == nil && policy.beginObserver == nil {
 		return
 	}
 	defer func() { _ = recover() }()
-	policy.observer.Finish(ctx, event)
+	if policy.beginObserver != nil {
+		policy.beginObserver.Finish(ctx, event)
+	} else {
+		policy.observer.Finish(ctx, event)
+	}
 }
 
 func (policy telemetryPolicy) inject(ctx context.Context, header http.Header) {

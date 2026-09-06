@@ -15,9 +15,13 @@ stable across the operation; attempt numbers increase from one.
 
 ## Observer and propagation ports
 
-`TelemetryObserver.Start` may return a derived context containing a span.
-`Finish` receives that same context and a closed outcome category. Observer or
-propagator panics are contained and cannot fail the HTTP operation.
+`BeginTelemetryObserver.Begin` may return a derived context containing a span.
+`Finish` receives that same context and a closed outcome category. Configure it
+through `TelemetryOptions.BeginObserver`. A literal nil interface is omitted;
+a typed-nil observer is invalid. `Observer` retains the released
+`TelemetryObserver.Start` contract for existing integrations, but it conflicts
+with `BeginObserver` when both interfaces are non-nil. Observer or propagator
+panics are contained and cannot fail the HTTP operation.
 
 `TelemetryPropagator.Inject` receives only a cloned physical-attempt header.
 The caller's `http.Request` remains unchanged. The default correlation field is
@@ -27,7 +31,7 @@ valid HTTP field name can be selected with `CorrelationHeader`.
 ```go
 client, err := httpclient.New(httpclient.Config{
 	Telemetry: &httpclient.TelemetryOptions{
-		Observer:          observer,
+		BeginObserver:     observer,
 		Propagator:        propagator,
 		BaggageAllowlist:  []string{"locale"},
 		SensitiveHeaders:  []string{"X-Vendor-Token"},
@@ -83,8 +87,8 @@ func (adapter propagator) Inject(ctx context.Context, header http.Header) {
 }
 ```
 
-An observer starts `http.client.operation` and `http.client.attempt` spans from
-the context passed to `Start`, stores no request object, and ends the span from
+An observer begins `http.client.operation` and `http.client.attempt` spans from
+the context passed to `Begin`, stores no request object, and ends the span from
 `Finish`. It records metrics from `event.MetricLabels()` only. This preserves
 the operation-to-attempt parent relationship while leaving provider,
 exporter, sampling, and shutdown ownership with `telemetry`.
@@ -108,8 +112,10 @@ classifies extension methods as `OTHER`, and returns only:
 
 ## slog and log
 
-`NewSlogTelemetryObserver` logs the same fixed safe fields at debug level. It
-never logs URL, headers, payloads, scope values, or error text. `log`
+`NewSlogTelemetryObserver` logs the same fixed safe fields at debug level. Its
+`Begin` method is the direct observation entry point; the released `Start`
+method delegates to it. It never logs URL, headers, payloads, scope values, or
+error text. `log`
 constructors return a standard `*slog.Logger`, so they plug into this adapter
 directly without adding a mandatory `log` dependency:
 
