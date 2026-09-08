@@ -27,6 +27,14 @@ NOT silently change behavior.
 
 ## Upstream review history
 
+### 2026-09-08
+
+- The RFC 9110 errata response advanced from SHA-256
+  `1f6790054c0cdb2f2a70a94fa2b9c73b09a4ee0578a32b4a3006ed0ecfaac86d`
+  to `cec32fd170146656d933f627b512f2e027ae5c3592f5ec7760c3627493b30505`.
+  No decision binding changed; the monitored errata page remains an
+  informational input and the selected HTTP behavior is unchanged.
+
 ### 2026-09-03
 
 - The RFC 9110 errata response advanced from SHA-256
