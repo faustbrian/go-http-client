@@ -58,3 +58,15 @@ enabling overlapping policy.
 
 See [adoption examples](adoption-examples.md) for materially different REST and
 JSON-RPC wrappers.
+
+## Full vendor policy composition
+
+The [`vendorcomposition` example](../examples/vendorcomposition/example_test.go)
+is the executable reference for a vendor client combining the public retry,
+rate-limit, circuit-breaker, cache, telemetry, and transport middleware seams.
+The application supplies a small bulkhead adapter at that same public seam;
+no umbrella package or hidden registry is required.
+
+The order is deliberate: cache lookup and logical rate admission surround the
+breaker and bounded retry policy, while bulkhead admission applies per physical
+attempt. Vendor DTOs and endpoint identity remain application-owned.
