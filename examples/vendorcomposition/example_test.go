@@ -65,7 +65,7 @@ func Example_vendorComposition() {
 	if err != nil {
 		panic(err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		panic(err)
