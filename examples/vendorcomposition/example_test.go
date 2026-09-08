@@ -51,7 +51,7 @@ func Example_vendorComposition() {
 	if err != nil {
 		panic(err)
 	}
-	client, err := httpclient.New(httpclient.Config{Transport: server.Client().Transport, Telemetry: &httpclient.TelemetryOptions{Observer: observer{}}, Middleware: append(append(rateMiddleware, breakerMiddleware, retryMiddleware, bulkheadMiddleware), cacheMiddleware)})
+	client, err := httpclient.New(httpclient.Config{Transport: server.Client().Transport, Telemetry: &httpclient.TelemetryOptions{Observer: &observer{}}, Middleware: append(append(rateMiddleware, breakerMiddleware, retryMiddleware, bulkheadMiddleware), cacheMiddleware)})
 	if err != nil {
 		panic(err)
 	}
@@ -100,5 +100,5 @@ func (b *bulkhead) around(request *http.Request, next httpclient.Next) (*http.Re
 
 type observer struct{ sync.Mutex }
 
-func (observer) Start(ctx context.Context, _ httpclient.TelemetryEvent) context.Context { return ctx }
-func (observer) Finish(context.Context, httpclient.TelemetryEvent)                      {}
+func (*observer) Start(ctx context.Context, _ httpclient.TelemetryEvent) context.Context { return ctx }
+func (*observer) Finish(context.Context, httpclient.TelemetryEvent)                      {}
