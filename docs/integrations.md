@@ -70,3 +70,10 @@ no umbrella package or hidden registry is required.
 The order is deliberate: cache lookup and logical rate admission surround the
 breaker and bounded retry policy, while bulkhead admission applies per physical
 attempt. Vendor DTOs and endpoint identity remain application-owned.
+
+The adjacent executable receipt verifies both success and failure boundaries:
+retry cleanup, fresh cache reuse, rate and breaker rejection, per-attempt
+bulkhead entry, deterministic telemetry ordering, and caller-owned successful
+response bodies. The application-owned vendor wrapper conservatively maps an
+unsafe POST transport failure to an explicit single-attempt unknown outcome;
+local admission failures remain distinct, and neither path is replayed.
