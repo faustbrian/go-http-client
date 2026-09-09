@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Strengthen the vendor HTTP composition recipe with executable receipts for
+  retries, cache reuse, admission, telemetry, response ownership, and unknown
+  outcomes.
 - Record the reviewed W3C Trace Context publication-history representation
   change as behavior-neutral because the seven-entry history and immutable
   2021 Recommendation remain unchanged.
