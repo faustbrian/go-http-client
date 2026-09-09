@@ -8,6 +8,7 @@ non-secret logs.
 Use GitHub Discussions for adoption questions and design exploration. Use the
 private process in [`SECURITY.md`](SECURITY.md) for vulnerabilities.
 
-Support covers released module versions according to
-[`COMPATIBILITY.md`](COMPATIBILITY.md). Unreleased main-branch behavior may
-change while remediation gates are incomplete.
+Support covers the latest stable v1 release, currently `v1.0.0`, with the Go
+1.26.6 minimum declared by that release. Version and behavior compatibility
+follow [`COMPATIBILITY.md`](COMPATIBILITY.md). Unreleased main-branch behavior
+may change while remediation gates are incomplete.

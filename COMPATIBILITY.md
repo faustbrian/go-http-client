@@ -1,7 +1,11 @@
 # Compatibility Policy
 
-Each releasable directory is an independent Go module and follows semantic
-versioning. Tags use `<module-directory>/v<version>`.
+This repository publishes one stable v1 module:
+`github.com/faustbrian/go-http-client`. Install the current stable release with
+`go get github.com/faustbrian/go-http-client@v1.0.0`. Root releases use
+`v<version>` tags. The module requires Go 1.26.6, as declared in `go.mod`; a
+future increase to that minimum is a compatibility change announced in the
+changelog.
 
 Before `v1`, minor releases MAY contain reviewed breaking changes, but every
 break MUST be documented with migration guidance. Patch releases MUST remain
@@ -16,3 +20,7 @@ defaults. A compile-compatible change can still be behaviorally breaking.
 Specification-backed modules MUST NOT diverge from their declared standards.
 Ambiguities require [documented decisions](docs/specification-decisions.md)
 and stable tests. Deprecated APIs follow [`DEPRECATION.md`](DEPRECATION.md).
+
+The module has no public subpackages or separately released adapters. Its sole
+public package is `httpclient`; the current API areas and ownership boundaries
+are listed in the [API reference](docs/api-reference.md).
