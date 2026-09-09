@@ -47,5 +47,8 @@
 - [Migration](migration.md)
 - [FAQ and troubleshooting](faq-troubleshooting.md)
 - [Specification sources](../specification/README.md)
+- [Compatibility policy](../COMPATIBILITY.md)
+- [Support](../SUPPORT.md)
+- [Security reporting](../SECURITY.md)
 - [Contribution guide](../CONTRIBUTING.md)
 - [Release history](../CHANGELOG.md)

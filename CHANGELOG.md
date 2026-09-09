@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Make the stable release, Go floor, canonical installation, package map,
+  lifecycle ownership, support, and security-reporting routes explicit.
 - Strengthen the vendor HTTP composition recipe with executable receipts for
   retries, cache reuse, admission, telemetry, response ownership, and unknown
   outcomes.

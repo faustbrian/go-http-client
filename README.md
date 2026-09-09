@@ -20,6 +20,17 @@ Use it when multiple integrations need the same security and lifecycle rules.
 Use `net/http` directly when a small integration does not need those policies.
 Vendor request and response models remain application-owned.
 
+## Status and lifecycle
+
+The module is a stable v1 library. The current stable release is `v1.0.0`,
+the minimum supported Go version is 1.26.6, and development remains active.
+It contains one public package and no independently versioned subpackages.
+
+Construct a `Client` with `New`, share it across goroutines, and call `Close`
+when its package-owned transport resources are no longer needed. Callers own
+the context supplied to each operation and the body of every successful raw
+response. Consuming response helpers take and close body ownership.
+
 ## Installation
 
 ```sh
@@ -29,31 +40,75 @@ go get github.com/faustbrian/go-http-client
 ## Quick start
 
 ```go
-client, err := httpclient.New(httpclient.Config{})
-if err != nil {
-	return err
-}
-defer client.Close()
+package main
 
-request, err := http.NewRequestWithContext(
-	ctx,
-	http.MethodGet,
-	"https://api.example.com/widgets",
-	nil,
+import (
+	"context"
+	"log"
+	"net/http"
+
+	httpclient "github.com/faustbrian/go-http-client"
 )
-if err != nil {
-	return err
+
+func main() {
+	if err := run(context.Background()); err != nil {
+		log.Fatal(err)
+	}
 }
 
-response, err := client.Do(request)
-if err != nil {
-	return err
+func run(ctx context.Context) error {
+	client, err := httpclient.New(httpclient.Config{})
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		"https://api.example.com/widgets",
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	return nil
 }
-defer response.Body.Close()
 ```
 
 For reusable endpoints, build requests from an immutable `RequestSpec`. Each
 build owns its URL, headers, query values, and body state.
+
+## Package map
+
+| Import path | Package | Use |
+| --- | --- | --- |
+| `github.com/faustbrian/go-http-client` | `httpclient` | Client lifecycle, immutable requests and bodies, middleware, authentication, retries and admission policies, caching, pagination, bounded response handling, transfers, egress and TLS policy, telemetry, and test fixtures. |
+
+There are no public subpackages or adapter modules. Compose these companions
+only at their distinct ownership boundaries:
+
+- [HTTP Signature](https://github.com/faustbrian/go-http-signature) signs and
+  verifies HTTP messages according to RFC 9421 and RFC 9530 profiles.
+- [Idempotency](https://github.com/faustbrian/go-idempotency) provides durable
+  ownership, fencing, and bounded replay across application workloads.
+- [Rate Limit](https://github.com/faustbrian/go-rate-limit) owns inbound and
+  application admission, not outbound HTTP pacing.
+- [Retry](https://github.com/faustbrian/go-retry) supplies transport-neutral
+  retry policy when work outside HTTP needs the same bounded semantics.
+- [Hedge](https://github.com/faustbrian/go-hedge) owns explicitly replay-safe,
+  finite concurrent duplicate attempts for tail-latency control.
+
+This package remains the owner of outbound HTTP retries and rate pacing. A
+composition must select one owner for each retry, limiter, breaker, bulkhead,
+or hedge layer.
 
 ## Guarantees
 
@@ -81,11 +136,19 @@ build owns its URL, headers, query values, and body state.
 
 ## Documentation
 
-Start with the [documentation index](docs/README.md). The
-[API reference](docs/api-reference.md), [transport guide](docs/transport.md),
-[integration guide](docs/integrations.md), [security guide](docs/security.md),
-and [specification decisions](docs/specification-decisions.md) define the main
-contracts.
+Start with the [documentation index](docs/README.md). Use the
+[API reference](docs/api-reference.md), [adoption examples](docs/adoption-examples.md),
+[integration guide](docs/integrations.md), and [testing helpers](docs/testing-fixtures.md)
+to adopt the package. The [compatibility policy](COMPATIBILITY.md),
+[migration guide](docs/migration.md), [performance guide](docs/performance.md),
+[operations and troubleshooting FAQ](docs/faq-troubleshooting.md), and
+[changelog](CHANGELOG.md) describe ongoing operation and upgrades.
+
+See [support](SUPPORT.md) for usage and defect reports. Report vulnerabilities
+through the private process in the [security policy](SECURITY.md); the
+[security guide](docs/security.md) and
+[specification decisions](docs/specification-decisions.md) define the package's
+trust and protocol contracts.
 
 ## Development
 
