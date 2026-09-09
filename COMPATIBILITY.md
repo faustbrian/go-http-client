@@ -2,7 +2,7 @@
 
 This repository publishes one stable v1 module:
 `github.com/faustbrian/go-http-client`. Install the current stable release with
-`go get github.com/faustbrian/go-http-client@v1.0.0`. Root releases use
+`go get github.com/faustbrian/go-http-client@v1.1.0`. Root releases use
 `v<version>` tags. The module requires Go 1.26.6, as declared in `go.mod`; a
 future increase to that minimum is a compatibility change announced in the
 changelog.

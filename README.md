@@ -22,7 +22,7 @@ Vendor request and response models remain application-owned.
 
 ## Status and lifecycle
 
-The module is a stable v1 library. The current stable release is `v1.0.0`,
+The module is a stable v1 library. The current stable release is `v1.1.0`,
 the minimum supported Go version is 1.26.6, and development remains active.
 It contains one public package and no independently versioned subpackages.
 
