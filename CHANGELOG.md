@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-09
+
 ### Added
 
 - Add `BeginTelemetryObserver` and `TelemetryOptions.BeginObserver` as the
@@ -327,5 +329,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   validator-safe append, automatic full-response restart, append rollback,
   whole-file digest validation, and atomic publication.
 
-[Unreleased]: https://github.com/faustbrian/go-http-client/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/faustbrian/go-http-client/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.1.0
 [1.0.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.0.0
