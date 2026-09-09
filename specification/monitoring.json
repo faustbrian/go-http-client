@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-03",
+  "reviewed_at": "2026-09-09",
   "review_interval_days": 90,
   "authorities": [
     {
@@ -36,7 +36,7 @@
       "id": "rfc9110-errata",
       "kind": "errata",
       "url": "https://errata.rfc-editor.org/search/?rfc_number=9110&presentation=records",
-      "sha256": "1f6790054c0cdb2f2a70a94fa2b9c73b09a4ee0578a32b4a3006ed0ecfaac86d",
+      "sha256": "cec32fd170146656d933f627b512f2e027ae5c3592f5ec7760c3627493b30505",
       "specifications": [
         "RFC 9110 HTTP Semantics"
       ]
@@ -226,7 +226,7 @@
       "id": "w3c-trace-context-history",
       "kind": "releases",
       "url": "https://www.w3.org/standards/history/trace-context/",
-      "sha256": "210f1d71d5a667a18beea7c681e484088023ed8d839106f757b411c644cdfeaf",
+      "sha256": "ab1a5ce3b8491194038e5b0b7c5a1b06bd2b1660d29b50caf841a46f7d687968",
       "specifications": [
         "W3C Trace Context Level 1 Recommendation 2021-11-23"
       ]

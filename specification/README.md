@@ -27,6 +27,24 @@ NOT silently change behavior.
 
 ## Upstream review history
 
+### 2026-09-09
+
+- The W3C Trace Context publication-history response advanced from SHA-256
+  `210f1d71d5a667a18beea7c681e484088023ed8d839106f757b411c644cdfeaf`
+  to `ab1a5ce3b8491194038e5b0b7c5a1b06bd2b1660d29b50caf841a46f7d687968`.
+  The reviewed page still contains the same seven publication entries, with
+  the 23 November 2021 Level 1 Recommendation as its newest entry. The
+  immutable Recommendation source remains byte-identical, so the selected
+  trace-context behavior, compatibility, and wire contract are unchanged.
+
+### 2026-09-08
+
+- The RFC 9110 errata response advanced from SHA-256
+  `1f6790054c0cdb2f2a70a94fa2b9c73b09a4ee0578a32b4a3006ed0ecfaac86d`
+  to `cec32fd170146656d933f627b512f2e027ae5c3592f5ec7760c3627493b30505`.
+  No decision binding changed; the monitored errata page remains an
+  informational input and the selected HTTP behavior is unchanged.
+
 ### 2026-09-03
 
 - The RFC 9110 errata response advanced from SHA-256

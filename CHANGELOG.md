@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTTPCLIENT-DEC-011 sha256:ea9bb215ae9507866c64cce17f07ff665d950b2c11090e105f6d477ea3dc929b
 - HTTPCLIENT-DEC-012 sha256:58c67f769e1005593db92f21b67a53b537bc718dae1da292150eabe758b00397
 - HTTPCLIENT-DEC-013 sha256:c192d4d4787fa08ae696957a471e85441d8b350ebe115d271553198c11724a4b
+- HTTPCLIENT-DEC-013 sha256:c1e428a430e1ee560ec5fbab8e2baa4e8df7fa1be8dc03c35f62b8be44ed5835
 - HTTPCLIENT-DEC-014 sha256:81e37fad9a73b7249ea62ba9d5cd90b754cb68abf2d25ae11a44c3b2e1f570af
 - HTTPCLIENT-DEC-015 sha256:68f8acef8d28e36c4d4aac7a41389ad88bb0bb7575988aea21402e68a77835e2
 - HTTPCLIENT-DEC-016 sha256:abed5656bcbc553f7866271dd3881a39aa6d31b1e33e0a4bc9fa5f428105fd40
@@ -53,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Record the reviewed W3C Trace Context publication-history representation
+  change as behavior-neutral because the seven-entry history and immutable
+  2021 Recommendation remain unchanged.
 - Link the module to the immutable v1.4.0 Golib ecosystem guidance.
 - Record RFC 9110 Erratum 9162 as behavior-neutral because repeated HTTP field
   values remain separate and the selected redirect, retry, representation,
