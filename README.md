@@ -7,7 +7,7 @@
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-http-client.svg)](https://pkg.go.dev/github.com/faustbrian/go-http-client)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-http-client?sort=semver)](https://github.com/faustbrian/go-http-client/releases)
-[![Go](https://img.shields.io/badge/go-1.26.6-00ADD8?logo=go)](https://go.dev/)
+[![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 `http-client` is a policy layer for typed outbound HTTP integrations. It builds
@@ -23,7 +23,7 @@ Vendor request and response models remain application-owned.
 ## Status and lifecycle
 
 The module is a stable v1 library. The current stable release is `v1.1.0`,
-the minimum supported Go version is 1.26.6, and development remains active.
+the minimum supported Go version is 1.27.0, and development remains active.
 It contains one public package and no independently versioned subpackages.
 
 Construct a `Client` with `New`, share it across goroutines, and call `Close`
