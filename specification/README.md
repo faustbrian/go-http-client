@@ -27,6 +27,16 @@ NOT silently change behavior.
 
 ## Upstream review history
 
+### 2026-09-13
+
+- The RFC 9111 errata response advanced from SHA-256
+  `62a3ca9503a1ce4ec50c9d9da58a08a06060a36f72b796d1aedb6c757507863d`
+  to `7726c1fc8af83c82e6f60fc9e65e90a293415520e8a022be3882be01672b3346`.
+  Reported Erratum 9004 explains that `proxy-revalidate` governs stale-response
+  revalidation and does not authorize shared-cache storage of authenticated
+  responses. That matches the existing shared-cache decision; no behavior or
+  decision binding changes.
+
 ### 2026-09-09
 
 - The W3C Trace Context publication-history response advanced from SHA-256
