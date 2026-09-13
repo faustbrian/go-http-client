@@ -8,7 +8,7 @@ trap 'chmod -R u+w "${task}" 2>/dev/null || true; find "${task}" -depth -delete'
 cat >"${task}/go.mod" <<EOF
 module httpclientretrypeer
 
-go 1.26.6
+go 1.27.0
 
 require (
 	github.com/faustbrian/go-http-client v0.0.0
