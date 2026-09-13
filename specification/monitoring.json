@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-09",
+  "reviewed_at": "2026-09-13",
   "review_interval_days": 90,
   "authorities": [
     {
@@ -55,7 +55,7 @@
       "id": "rfc9111-errata",
       "kind": "errata",
       "url": "https://errata.rfc-editor.org/search/?rfc_number=9111&presentation=records",
-      "sha256": "62a3ca9503a1ce4ec50c9d9da58a08a06060a36f72b796d1aedb6c757507863d",
+      "sha256": "7726c1fc8af83c82e6f60fc9e65e90a293415520e8a022be3882be01672b3346",
       "specifications": [
         "RFC 9111 HTTP Caching"
       ]
