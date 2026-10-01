@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-01
+
+### Changed
+
+- Adopt the compatible v1.8.5 shared CI workflow while retaining the
+  checksum-verified v1.4.0 Golib CLI.
+
+### Compatibility
+
+- Carry forward the Go 1.27.0 minimum adopted in v1.1.1. Upgrade Go before
+  installing v1.1.1 or later when migrating from v1.1.0 on Go 1.26.6.
+- Document the x/net v0.59.0 and x/oauth2 v0.37.0 dependency updates already
+  published in v1.1.1; this release retains those dependency versions.
+
 ## [1.1.0] - 2026-09-09
 
 ### Added
@@ -329,6 +343,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   validator-safe append, automatic full-response restart, append rollback,
   whole-file digest validation, and atomic publication.
 
-[Unreleased]: https://github.com/faustbrian/go-http-client/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/faustbrian/go-http-client/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/faustbrian/go-http-client/releases/tag/v1.1.2
 [1.1.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.1.0
 [1.0.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.0.0
