@@ -462,3 +462,58 @@ func TestCredentialAdmissionClientCredentialsIndependentBudgets(t *testing.T) {
 		})
 	}
 }
+
+func TestCredentialAdmissionOAuthAcquisitionErrorPreservesContract(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		new  func(oauth2.TokenSource) (RequestEditor, error)
+	}{
+		{name: "default policy", new: NewOAuth2Auth},
+		{name: "explicit policy", new: func(source oauth2.TokenSource) (RequestEditor, error) {
+			return NewOAuth2AuthWithPolicy(source, CredentialPolicy{MaximumInputBytes: 1, MaximumEncodedBytes: 8})
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			upstream := errors.New("upstream unavailable")
+			calls := 0
+			source := credentialAdmissionSource(func() (*oauth2.Token, error) {
+				calls++
+				if calls == 1 {
+					return nil, upstream
+				}
+				return &oauth2.Token{AccessToken: "a"}, nil
+			})
+			editor, err := test.new(source)
+			if err != nil {
+				t.Fatal("OAuth acquisition editor setup failed")
+			}
+			request, err := http.NewRequest(http.MethodGet, "https://example.test", nil)
+			if err != nil {
+				t.Fatal("request setup failed")
+			}
+			request.Header.Set("Authorization", "original")
+			err = editor.EditRequest(request)
+			var tokenError *OAuth2TokenError
+			if !errors.As(err, &tokenError) {
+				t.Fatal("upstream acquisition error lost its public type")
+			}
+			if !errors.Is(err, upstream) {
+				t.Fatal("upstream acquisition error identity was lost")
+			}
+			if err.Error() != "OAuth2 token acquisition failed" {
+				t.Fatal("upstream acquisition error did not retain its fixed safe message")
+			}
+			if request.Header.Get("Authorization") != "original" {
+				t.Fatal("upstream acquisition failure changed Authorization")
+			}
+			for range 2 {
+				if err := editor.EditRequest(request); err != nil || request.Header.Get("Authorization") != "Bearer a" {
+					t.Fatal("editor did not recover and reuse the valid replacement token")
+				}
+			}
+			if calls != 2 {
+				t.Fatal("acquisition failure was retained or recovered token was not reused")
+			}
+		})
+	}
+}
