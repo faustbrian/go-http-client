@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-09-13",
+  "reviewed_at": "2026-10-04",
   "review_interval_days": 90,
   "authorities": [
     {
@@ -55,7 +55,7 @@
       "id": "rfc9111-errata",
       "kind": "errata",
       "url": "https://errata.rfc-editor.org/search/?rfc_number=9111&presentation=records",
-      "sha256": "7726c1fc8af83c82e6f60fc9e65e90a293415520e8a022be3882be01672b3346",
+      "sha256": "1df394f9c04e33e74bf69360e3b7d3bbdeccbe80e27caaa18fdace216ccb54a4",
       "specifications": [
         "RFC 9111 HTTP Caching"
       ]
@@ -93,7 +93,7 @@
       "id": "rfc7617-errata",
       "kind": "errata",
       "url": "https://errata.rfc-editor.org/search/?rfc_number=7617&presentation=records",
-      "sha256": "65c35dbd52a095a122e1bd17e5da0dee8c0b6c63bbb2888cb95ee8f598eb2312",
+      "sha256": "1239ab6ff18d3563bacedded3a60c2031880ab980936660bd3caba56aac833fc",
       "specifications": [
         "RFC 7617 Basic HTTP Authentication"
       ]
@@ -226,7 +226,7 @@
       "id": "w3c-trace-context-history",
       "kind": "releases",
       "url": "https://www.w3.org/standards/history/trace-context/",
-      "sha256": "ab1a5ce3b8491194038e5b0b7c5a1b06bd2b1660d29b50caf841a46f7d687968",
+      "sha256": "70e2dad402936139fafff07cc28c6739e3d3bb8be4ca0550107cf21216533832",
       "specifications": [
         "W3C Trace Context Level 1 Recommendation 2021-11-23"
       ]
