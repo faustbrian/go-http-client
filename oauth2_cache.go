@@ -13,10 +13,13 @@ import (
 // TokenCacheOptions configures a context-aware cache around a caller-owned
 // OAuth2 token source. Client owns cancellation and lifecycle.
 type TokenCacheOptions struct {
-	Client      *Client
-	Source      ContextTokenSource
-	EarlyExpiry time.Duration
-	Now         func() time.Time
+	// CredentialPolicy bounds exported token credential fields before cache
+	// admission. Opaque Extra metadata retains source-owned shallow semantics.
+	CredentialPolicy CredentialPolicy
+	Client           *Client
+	Source           ContextTokenSource
+	EarlyExpiry      time.Duration
+	Now              func() time.Time
 }
 
 // TokenCacheError reports an upstream refresh failure without rendering its
@@ -37,9 +40,11 @@ func (err *TokenCacheError) Unwrap() error {
 
 // CachedTokenSource coordinates one caller-owned token refresh while other
 // callers wait cancelably. Every successful caller receives an independent
-// token copy. Invalidate removes only the exact token observed by a rejected
+// token struct and credential strings, not a deep copy of opaque Extra data.
+// Invalidate removes only the exact token observed by a rejected
 // provider request, so a concurrent newer token cannot be discarded.
 type CachedTokenSource struct {
+	policy      CredentialPolicy
 	client      *Client
 	source      ContextTokenSource
 	earlyExpiry time.Duration
@@ -62,6 +67,10 @@ func (source *CachedTokenSource) validToken(token *oauth2.Token) bool {
 // NewCachedTokenSource wraps a context-aware caller-owned token source with a
 // client-bounded, concurrency-safe cache and explicit invalidation.
 func NewCachedTokenSource(options TokenCacheOptions) (*CachedTokenSource, error) {
+	policy, err := resolveCredentialPolicy(options.CredentialPolicy)
+	if err != nil {
+		return nil, err
+	}
 	if nilLike(options.Client) || nilLike(options.Source) {
 		return nil, fmt.Errorf("%w: token cache policy is incomplete", ErrInvalidAuthentication)
 	}
@@ -86,6 +95,7 @@ func NewCachedTokenSource(options TokenCacheOptions) (*CachedTokenSource, error)
 	return &CachedTokenSource{
 		client: options.Client, source: options.Source,
 		earlyExpiry: earlyExpiry, now: now,
+		policy: policy,
 	}, nil
 }
 
@@ -165,7 +175,7 @@ func (source *CachedTokenSource) fetch(ctx context.Context) (*oauth2.Token, erro
 	if err != nil {
 		return nil, &TokenCacheError{Cause: err}
 	}
-	if !validClientCredentialsToken(token, source.now(), source.earlyExpiry) {
+	if !source.policy.token(token) || !validClientCredentialsToken(token, source.now(), source.earlyExpiry) {
 		return nil, &TokenCacheError{Cause: ErrInvalidOAuth2Token}
 	}
 	authorization := token.Type() + " " + token.AccessToken
@@ -182,7 +192,7 @@ func invalidateToken(mu *sync.Mutex, token **oauth2.Token, accessToken string) b
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if *token == nil || subtle.ConstantTimeCompare(
+	if *token == nil || len((*token).AccessToken) != len(accessToken) || subtle.ConstantTimeCompare(
 		[]byte((*token).AccessToken),
 		[]byte(accessToken),
 	) != 1 {

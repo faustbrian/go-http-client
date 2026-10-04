@@ -4,6 +4,66 @@ Authentication is expressed as immutable `RequestEditor` values around normal
 `*http.Request` objects. Editors are safe for reuse and do not introduce a
 global credential registry.
 
+## Credential resource admission
+
+Built-in credentials use a shared finite `CredentialPolicy`. Zero fields select
+64 KiB aggregate raw input, 256 KiB encoded credential output, and 256 collection
+items. Positive limits may be as small as one and may not exceed 1 MiB raw,
+4 MiB encoded, and 4096 items. Invalid policies and oversized static credentials
+return `ErrInvalidAuthentication` without credential values. Oversized returned
+OAuth tokens wrap `ErrInvalidOAuth2Token`; editors do not change the request and
+package-owned caches do not retain rejected credentials.
+
+Existing constructor signatures use these defaults. Select explicit limits
+through `NewBasicAuthWithPolicy`, `NewBearerAuthWithPolicy`,
+`NewAPIKeyHeaderWithPolicy`, `NewAPIKeyQueryWithPolicy`,
+`NewOAuth2AuthWithPolicy`, or `NewContextOAuth2AuthWithPolicy`; use the
+`CredentialPolicy` field on `HMACOptions`, `ClientCredentialsOptions`, and
+`TokenCacheOptions` for those sources. Limits are inclusive and checked before
+scans, copies, concatenation, or encoding that they bound.
+
+Raw accounting aggregates Basic user/password, API-key name/value, or OAuth
+access-token/type/refresh-token bytes. HMAC accounts for the secret only.
+Client-credentials configuration aggregates token URL, client ID/secret, scopes,
+and endpoint parameter names/values. Collection items count each scope,
+parameter name, and parameter value, including empty parameter-value lists.
+Admitted retained credential strings are copied, so a small substring cannot
+keep an arbitrarily large caller buffer alive through those fields.
+
+Encoded accounting includes `Basic ` and Base64 expansion, `Bearer ` or OAuth
+token type plus its separating space, API header name plus colon-space and
+value, and an escaped query `name=value`. Client-credentials admission checks
+the entire encoded form body (including grant type, scopes and endpoint
+parameters) and the escaped Basic header separately. It does not count HTTP
+framing or unrelated request data. `NewAPIKeyQuery` still parses and re-encodes
+the existing request query; the application must bound that surrounding query.
+The transport's response-header limit is not an outgoing credential limit.
+
+### Trusted collaborators and retained metadata
+
+The application integrating a source owns token acquisition, external caches,
+and opaque `oauth2.Token.Extra` metadata size and allocation. Package caches
+preserve upstream opaque metadata sharing; independent token copies mean
+independent structs and exported credential strings, not deeply copied metadata.
+The finite credential policy does not bound opaque metadata, external-source
+work, or arbitrary provider response behavior. For the built-in endpoint source,
+the pinned OAuth dependency applies its response-read limit before our token
+field admission; this policy is not a replacement response-decoding limit.
+
+This trusted-collaborator boundary preserves provider metadata compatibility
+because the public OAuth API does not expose its opaque representation for
+finite admission. The integrating application must select trusted sources,
+limit provider responses and metadata at acquisition, and avoid placing
+unbounded data in Extra. Review this accepted boundary when changing the token
+source, provider metadata schema, or OAuth dependency; an untrusted source
+requires a separately bounded acquisition/metadata adapter.
+
+HMAC canonicalization, hash factories, and signature application likewise remain
+trusted vendor callbacks: their owner must bound canonical data, hash resources,
+and signature output. The credential policy bounds only the copied HMAC secret.
+Surrounding header/query collections and authentication-origin configuration
+remain application-owned policies, not certified whole-request limits.
+
 Use `NewAuthenticationMiddleware` for credentials. It creates one operation
 middleware that fixes the trusted origins and one attempt middleware that
 decorates every physical request. The default trusted set contains only the
@@ -128,7 +188,8 @@ The token source has these lifecycle rules:
 - one caller refreshes while concurrent callers wait on bounded shared state;
 - every waiting caller can stop independently through its context;
 - closing `Client` stops refreshes and rejects cached tokens;
-- every caller receives an independent token copy;
+- every caller receives an independent token struct and credential strings;
+  opaque Extra metadata remains shallowly shared with its upstream owner;
 - token endpoint calls reuse the client's transport and finite timeout;
 - integration middleware and cookie jars are bypassed, preventing recursive
   authentication, nested retry loops, and ambient session state; and
