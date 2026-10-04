@@ -558,6 +558,36 @@ Authoritative URL: https://www.rfc-editor.org/rfc/rfc9110.txt
 Decision data: `{"id":"HTTPCLIENT-DEC-018","title":"Request body replay and response body ownership","status":"resolved","owner":"http-client maintainers","classification":"implementation-defined behavior","decision_scope":"defensive","specification":"RFC 9110 HTTP Semantics","version":"RFC-9110","source_authority":"rfc9110","section":"4 through 15","requirement_strength":"not specified","issue":"Request body replay and response body ownership exposes observable policy that the cited specification does not completely select for a reusable integration client.","interpretations":["Delegate every choice to the underlying Go implementation","Apply explicit package policy at the owned boundary"],"peer_behavior":"Maintained implementations expose materially different policy defaults for this boundary.","selected_behavior":"Replay only explicit replayable bodies, keep streams one-shot, leave accepted bodies caller-owned, and close internally discarded bodies.","rationale":"The selected behavior makes compatibility, trust, lifecycle, and failure semantics explicit.","security_consequences":"Untrusted protocol input is handled only within the documented validation and trust policy.","resource_consequences":"Processing, retained state, waits, and stream ownership remain within documented finite bounds.","compatibility_consequences":"Changing this selection requires specification-decision and compatibility review.","wire_consequences":"Wire-visible behavior follows the selected policy and cited executable evidence.","executable_evidence":["TestRequestSpecBuildsIndependentReplayableByteBodies","TestRequestSpecStreamingBodyIsExplicitlyOneShot","TestClassifyResponseLeavesAcceptedBodyCallerOwned","TestPipelineResponseReplacementClosesSupersededBody","TestPipelineClosesResponsesReturnedWithErrors"],"fixture_evidence":[],"fuzz_evidence":[],"interoperability_evidence":[],"differential_evidence":[],"public_apis":["RequestBody","RequestSpec.WithBody","Client.Do","ClassifyResponse"],"documentation":["docs/specification-decisions.md"],"upstream_status":"No unresolved upstream erratum is known for this selected package policy.","reconsider_when":"A pinned source, monitored erratum, maintained peer, or supported Go contract changes this boundary."}`
 Authoritative URL: https://www.rfc-editor.org/rfc/rfc9110.txt
 
+## Authority review: 2026-10-04
+
+All 24 configured authority snapshots were reviewed; 21 remained unchanged.
+The three changed monitoring snapshots have the following dispositions. This
+review does not change pinned specifications, decision data, or runtime behavior.
+
+- [RFC 9111 errata](https://errata.rfc-editor.org/search/?rfc_number=9111&presentation=records):
+  9004 is **Reported** and clarifies that `proxy-revalidate` does not authorize
+  storing authenticated responses. HTTPCLIENT-DEC-008's implementation already
+  separates storage permission (`public`, `must-revalidate`, or `s-maxage`) from
+  shared-cache stale-reuse restrictions (`cache.go`, `sharedCachePermission`
+  and `staleReuseProhibited`). 9185 is **Reported** and proposes cross-`Vary`
+  304 reuse when strong validators match. It is not adopted: `match` selects a
+  matching variant before revalidation, and `updateCachedHeaders` preserves its
+  `Vary` identity. Adopting that proposal would require a separate behavioral
+  and compatibility review. 9166 is **Held for Document Update** and clarifies
+  that extensions outside `Cache-Control` can modify caching behavior; it does
+  not add support for extensions such as `No-Vary-Search` to this package.
+- [RFC 7617 errata](https://errata.rfc-editor.org/search/?rfc_number=7617&presentation=records):
+  9174 is **Reported** and proposes making the existing RFC 5234 ASCII control
+  character scope explicit. HTTPCLIENT-DEC-004 is not newly certified by this
+  review: `NewBasicAuth` checks UTF-8 validity and the username delimiter but
+  does not reject ASCII control characters. That existing validation boundary
+  requires separate behavioral review; neither the proposal nor this metadata
+  update resolves it.
+- [W3C Trace Context publication history](https://www.w3.org/standards/history/trace-context/):
+  the latest listed Level 1 publication remains the 2021-11-23 Recommendation.
+  The monitored history-page change does not replace the pinned Recommendation
+  or adopt the separately linked Level 2 specification.
+
 ## Unresolved decisions
 
 No known material interpretation for the currently supported HTTP/1.1 and
@@ -566,3 +596,5 @@ scope and is not silently resolved; adoption requires decisions for fallback,
 0-RTT replay, ownership, telemetry, and interoperability. New standards,
 errata, or peer disagreements remain unresolved until they receive a stable
 identifier, source analysis, executable evidence, and maintainer disposition.
+The Basic-auth ASCII-control admission described above remains an open
+implementation-validation boundary, not resolved by this monitoring review.
