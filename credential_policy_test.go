@@ -380,3 +380,85 @@ func TestCredentialAdmissionClientCredentialsReturnedToken(t *testing.T) {
 		})
 	}
 }
+
+func TestCredentialAdmissionClientCredentialsIndependentBudgets(t *testing.T) {
+	client, err := New(Config{})
+	if err != nil {
+		t.Fatal("client setup failed")
+	}
+	defer client.Close()
+	base := ClientCredentialsOptions{
+		Client: client, TokenURL: "https://t.test", ClientID: "a", ClientSecret: "b",
+	}
+	baseBytes := len(base.TokenURL) + len(base.ClientID) + len(base.ClientSecret)
+	for _, test := range []struct {
+		name       string
+		scopes     []string
+		parameters url.Values
+		accepted   CredentialPolicy
+		rejected   CredentialPolicy
+	}{
+		{
+			name: "aggregate scope bytes", scopes: []string{"r", "s"},
+			accepted: CredentialPolicy{MaximumInputBytes: baseBytes + 2},
+			rejected: CredentialPolicy{MaximumInputBytes: baseBytes + 1},
+		},
+		{
+			name: "parameter name bytes", parameters: url.Values{"pq": {}},
+			accepted: CredentialPolicy{MaximumInputBytes: baseBytes + 2},
+			rejected: CredentialPolicy{MaximumInputBytes: baseBytes + 1},
+		},
+		{
+			name: "parameter value bytes", parameters: url.Values{"p": {"vw"}},
+			accepted: CredentialPolicy{MaximumInputBytes: baseBytes + 3},
+			rejected: CredentialPolicy{MaximumInputBytes: baseBytes + 2},
+		},
+		{
+			name: "scope count", scopes: []string{"r", "s"},
+			accepted: CredentialPolicy{MaximumItems: 2},
+			rejected: CredentialPolicy{MaximumItems: 1},
+		},
+		{
+			name: "parameter name count", parameters: url.Values{"p": {}, "q": {}},
+			accepted: CredentialPolicy{MaximumItems: 2},
+			rejected: CredentialPolicy{MaximumItems: 1},
+		},
+		{
+			name: "aggregate name and scope count", scopes: []string{"r"}, parameters: url.Values{"p": {}},
+			accepted: CredentialPolicy{MaximumItems: 2},
+			rejected: CredentialPolicy{MaximumItems: 1},
+		},
+		{
+			name:     "required grant syntax",
+			accepted: CredentialPolicy{MaximumEncodedBytes: 29},
+			rejected: CredentialPolicy{MaximumEncodedBytes: 28},
+		},
+		{
+			name: "required scope syntax", scopes: []string{"r"},
+			accepted: CredentialPolicy{MaximumEncodedBytes: 37},
+			rejected: CredentialPolicy{MaximumEncodedBytes: 35},
+		},
+		{
+			name: "scope value bytes", scopes: []string{"r"},
+			accepted: CredentialPolicy{MaximumEncodedBytes: 37},
+			rejected: CredentialPolicy{MaximumEncodedBytes: 36},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			options := base
+			options.Scopes, options.EndpointParams = test.scopes, test.parameters
+			options.CredentialPolicy = test.accepted
+			if source, err := NewClientCredentialsTokenSource(options); err != nil || source == nil {
+				t.Fatal("valid credential configuration within isolated budget was rejected")
+			}
+			options.CredentialPolicy = test.rejected
+			source, err := NewClientCredentialsTokenSource(options)
+			if source != nil || !errors.Is(err, ErrInvalidAuthentication) {
+				t.Fatal("valid credential configuration exceeding isolated budget was admitted")
+			}
+			if strings.Contains(err.Error(), options.TokenURL) {
+				t.Fatal("admission rejection exposed endpoint data")
+			}
+		})
+	}
+}
