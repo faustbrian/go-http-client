@@ -247,7 +247,11 @@ func TestCredentialAdmissionCacheRejectsBeforeRetention(t *testing.T) {
 	if err != nil {
 		t.Fatal("client setup failed")
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Error("client cleanup failed")
+		}
+	}()
 	calls := 0
 	extra := map[string]interface{}{"note": "x"}
 	source, err := NewCachedTokenSource(TokenCacheOptions{
@@ -286,7 +290,11 @@ func TestCredentialAdmissionCacheEncodedBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal("client setup failed")
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Error("client cleanup failed")
+		}
+	}()
 	for _, maximum := range []int{8, 7} {
 		source, err := NewCachedTokenSource(TokenCacheOptions{
 			Client: client, CredentialPolicy: CredentialPolicy{MaximumInputBytes: 1, MaximumEncodedBytes: maximum},
@@ -311,7 +319,11 @@ func TestCredentialAdmissionClientCredentialsCollections(t *testing.T) {
 	if err != nil {
 		t.Fatal("client setup failed")
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Error("client cleanup failed")
+		}
+	}()
 	base := ClientCredentialsOptions{
 		Client: client, TokenURL: "https://t.test", ClientID: "a", ClientSecret: "b",
 		Scopes: []string{"r"}, EndpointParams: url.Values{"p": {"v"}},
@@ -392,7 +404,11 @@ func TestCredentialAdmissionClientCredentialsReturnedToken(t *testing.T) {
 			if err != nil {
 				t.Fatal("in-memory client setup failed")
 			}
-			defer client.Close()
+			defer func() {
+				if err := client.Close(); err != nil {
+					t.Error("client cleanup failed")
+				}
+			}()
 			source, err := NewClientCredentialsTokenSource(ClientCredentialsOptions{
 				Client: client, TokenURL: "https://t.test", ClientID: "a", ClientSecret: "b",
 				CredentialPolicy: CredentialPolicy{MaximumInputBytes: 32, MaximumEncodedBytes: 29},
@@ -421,7 +437,11 @@ func TestCredentialAdmissionClientCredentialsIndependentBudgets(t *testing.T) {
 	if err != nil {
 		t.Fatal("client setup failed")
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Error("client cleanup failed")
+		}
+	}()
 	base := ClientCredentialsOptions{
 		Client: client, TokenURL: "https://t.test", ClientID: "a", ClientSecret: "b",
 	}
