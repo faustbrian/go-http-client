@@ -2,8 +2,7 @@
 
 ## Root v2 import identity
 
-The prepared release is `v2.0.0`; it is not yet published. The latest public
-root remains `v1.1.2`. After publication, select
+For root `v2.0.0`, select
 `github.com/faustbrian/go-http-client/v2@v2.0.0` and change application imports
 to `github.com/faustbrian/go-http-client/v2`. There are no independent nested
 modules or version-specific source directories.
