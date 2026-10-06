@@ -93,7 +93,7 @@ build owns its URL, headers, query values, and body state.
 
 | Import path | Package | Use |
 | --- | --- | --- |
-| `github.com/faustbrian/go-http-client` | `httpclient` | Client lifecycle, immutable requests and bodies, middleware, authentication, retries and admission policies, caching, pagination, bounded response handling, transfers, egress and TLS policy, telemetry, and test fixtures. |
+| `github.com/faustbrian/go-http-client/v2` | `httpclient` | Client lifecycle, immutable requests and bodies, middleware, authentication, retries and admission policies, caching, pagination, bounded response handling, transfers, egress and TLS policy, telemetry, and test fixtures. |
 
 There are no public subpackages or adapter modules. Compose these companions
 only at their distinct ownership boundaries:

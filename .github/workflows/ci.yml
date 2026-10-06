@@ -25,10 +25,11 @@ permissions:
 
 jobs:
   ci:
-    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@1bdc21ced96f6a1ea2870d40b9b60ade160ac529 # reviewed development tooling
+    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@3c8b133f677a9e272492077094585c28fb154447 # reviewed development tooling
     with:
-      tooling_sha: 1bdc21ced96f6a1ea2870d40b9b60ade160ac529
+      tooling_sha: 3c8b133f677a9e272492077094585c28fb154447
       source_bootstrap: true
+      public_dependencies: true
       release_dry_run: ${{ (inputs.release_dry_run || false) && !inputs.coverage_diagnostic }}
 
   coverage-diagnostic:
