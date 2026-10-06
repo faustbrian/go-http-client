@@ -105,6 +105,41 @@ func TestCredentialAdmissionRejectsInvalidPolicies(t *testing.T) {
 	}
 }
 
+func TestCredentialPolicyInclusiveExtrema(t *testing.T) {
+	for _, policy := range []CredentialPolicy{
+		{MaximumInputBytes: 1, MaximumEncodedBytes: 1, MaximumItems: 1},
+		{MaximumInputBytes: 1 << 20, MaximumEncodedBytes: 4 << 20, MaximumItems: 4096},
+	} {
+		got, err := resolveCredentialPolicy(policy)
+		if err != nil || got != policy {
+			t.Fatalf("inclusive policy changed or rejected: got %v, error %v", got, err)
+		}
+	}
+}
+
+func TestCredentialAdmissionQueryAlphabetExtrema(t *testing.T) {
+	for _, value := range []string{"a", "z", "A", "Z", "0", "9"} {
+		t.Run(value, func(t *testing.T) {
+			policy := CredentialPolicy{MaximumInputBytes: 2, MaximumEncodedBytes: 3}
+			editor, err := NewAPIKeyQueryWithPolicy("k", value, policy)
+			if err != nil {
+				t.Fatal("three-byte unescaped query was rejected")
+			}
+			request, err := http.NewRequest(http.MethodGet, "https://example.test/", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := editor.EditRequest(request); err != nil || request.URL.RawQuery != "k="+value {
+				t.Fatal("accepted query did not preserve literal encoding")
+			}
+			policy.MaximumEncodedBytes = 2
+			if _, err := NewAPIKeyQueryWithPolicy("k", value, policy); !errors.Is(err, ErrInvalidAuthentication) {
+				t.Fatal("query over encoded budget was admitted")
+			}
+		})
+	}
+}
+
 func TestCredentialAdmissionHMACCopiesAdmittedSecret(t *testing.T) {
 	secret := []byte("ab")
 	expected := hmac.New(sha256.New, secret)
@@ -412,6 +447,16 @@ func TestCredentialAdmissionClientCredentialsIndependentBudgets(t *testing.T) {
 			name: "parameter value bytes", parameters: url.Values{"p": {"vw"}},
 			accepted: CredentialPolicy{MaximumInputBytes: baseBytes + 3},
 			rejected: CredentialPolicy{MaximumInputBytes: baseBytes + 2},
+		},
+		{
+			name: "aggregate parameter value bytes", parameters: url.Values{"p": {"v", "w"}},
+			accepted: CredentialPolicy{MaximumInputBytes: baseBytes + 3},
+			rejected: CredentialPolicy{MaximumInputBytes: baseBytes + 2},
+		},
+		{
+			name: "aggregate parameter value count", parameters: url.Values{"p": {"v"}, "q": {"w"}},
+			accepted: CredentialPolicy{MaximumItems: 4},
+			rejected: CredentialPolicy{MaximumItems: 3},
 		},
 		{
 			name: "scope count", scopes: []string{"r", "s"},

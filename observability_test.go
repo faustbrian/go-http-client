@@ -627,7 +627,7 @@ func TestW3CTraceContextPrimitiveBoundaries(t *testing.T) {
 	validKeys := []string{
 		strings.Repeat("a", 256),
 		strings.Repeat("a", 241) + "@" + strings.Repeat("b", 14),
-		"a0", "a9", "a_", "a-", "a*", "a/", "z",
+		"aa", "az", "a0", "a9", "a_", "a-", "a*", "a/", "z",
 	}
 	for _, key := range validKeys {
 		if !validTracestateKey(key) {
