@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -47,6 +48,7 @@ type OAuth2TokenError struct {
 // ClientCredentialsOptions configures an outbound OAuth2 client-credentials
 // source. Client supplies the hardened transport and finite total timeout.
 type ClientCredentialsOptions struct {
+	CredentialPolicy CredentialPolicy
 	Client           *Client
 	TokenURL         string
 	ClientID         string
@@ -89,24 +91,62 @@ func (err *OAuth2TokenError) Unwrap() error {
 // request editor. The source is wrapped with oauth2.ReuseTokenSource so valid
 // tokens are shared and refresh calls are serialized.
 func NewOAuth2Auth(source oauth2.TokenSource) (RequestEditor, error) {
+	return NewOAuth2AuthWithPolicy(source, CredentialPolicy{})
+}
+
+// NewOAuth2AuthWithPolicy bounds token credential fields before the package's
+// reuse cache admits them. Source acquisition and opaque Extra metadata remain
+// trusted source-owned work outside the credential policy.
+func NewOAuth2AuthWithPolicy(source oauth2.TokenSource, policy CredentialPolicy) (RequestEditor, error) {
+	policy, err := resolveCredentialPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
 	if nilLike(source) {
 		return nil, fmt.Errorf("%w: OAuth2 token source is nil", ErrInvalidAuthentication)
 	}
-	reusable := oauth2.ReuseTokenSource(nil, source)
+	reusable := oauth2.ReuseTokenSource(nil, admittedOAuth2TokenSource{source: source, policy: policy})
 
-	return NewContextOAuth2Auth(ContextTokenSourceFunc(func(context.Context) (*oauth2.Token, error) {
+	return NewContextOAuth2AuthWithPolicy(ContextTokenSourceFunc(func(context.Context) (*oauth2.Token, error) {
 		return reusable.Token()
-	}))
+	}), policy)
+}
+
+type admittedOAuth2TokenSource struct {
+	source oauth2.TokenSource
+	policy CredentialPolicy
+}
+
+func (source admittedOAuth2TokenSource) Token() (*oauth2.Token, error) {
+	token, err := source.source.Token()
+	if err != nil {
+		return nil, err
+	}
+	if !source.policy.token(token) {
+		return nil, ErrInvalidOAuth2Token
+	}
+	return cloneOAuth2Token(token), nil
 }
 
 // NewContextOAuth2Auth returns an editor that passes each request context to a
 // context-aware token source.
 func NewContextOAuth2Auth(source ContextTokenSource) (RequestEditor, error) {
+	return NewContextOAuth2AuthWithPolicy(source, CredentialPolicy{})
+}
+
+// NewContextOAuth2AuthWithPolicy admits returned token credential fields before
+// validation and Authorization construction. The source owns acquisition,
+// external caches and opaque metadata; the editor does not bound those.
+func NewContextOAuth2AuthWithPolicy(source ContextTokenSource, policy CredentialPolicy) (RequestEditor, error) {
+	policy, err := resolveCredentialPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
 	if nilLike(source) {
 		return nil, fmt.Errorf("%w: OAuth2 context token source is nil", ErrInvalidAuthentication)
 	}
 
-	return oauth2AuthEditor{source: source}, nil
+	return oauth2AuthEditor{source: source, policy: policy}, nil
 }
 
 // NewClientCredentialsTokenSource returns a context-aware, concurrency-safe
@@ -114,6 +154,13 @@ func NewContextOAuth2Auth(source ContextTokenSource) (RequestEditor, error) {
 // callers wait cancelably. Token endpoint calls use Client.HTTPClient directly
 // so integration middleware cannot recursively authenticate or retry them.
 func NewClientCredentialsTokenSource(options ClientCredentialsOptions) (*ClientCredentialsTokenSource, error) {
+	policy, err := resolveCredentialPolicy(options.CredentialPolicy)
+	if err != nil {
+		return nil, err
+	}
+	if err := policy.clientCredentials(options); err != nil {
+		return nil, err
+	}
 	configuration, earlyExpiry, now, err := validateClientCredentialsOptions(options)
 	if err != nil {
 		return nil, err
@@ -124,11 +171,13 @@ func NewClientCredentialsTokenSource(options ClientCredentialsOptions) (*ClientC
 		config:      configuration,
 		earlyExpiry: earlyExpiry,
 		now:         now,
+		policy:      policy,
 	}, nil
 }
 
 // ClientCredentialsTokenSource coordinates cached client-credentials tokens.
 type ClientCredentialsTokenSource struct {
+	policy      CredentialPolicy
 	client      *Client
 	config      clientcredentials.Config
 	earlyExpiry time.Duration
@@ -156,7 +205,8 @@ func (source *ClientCredentialsTokenSource) validToken(
 	)
 }
 
-// Token returns an independent token copy or refreshes it using ctx.
+// Token returns an independent token struct or refreshes it using ctx. Opaque
+// Extra metadata retains its upstream-owned shallow sharing semantics.
 func (source *ClientCredentialsTokenSource) Token(ctx context.Context) (*oauth2.Token, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("%w: token context is nil", ErrInvalidAuthentication)
@@ -229,7 +279,7 @@ func (source *ClientCredentialsTokenSource) fetch(ctx context.Context) (*oauth2.
 	if err != nil {
 		return nil, &ClientCredentialsError{Cause: err}
 	}
-	if !validClientCredentialsToken(token, source.now(), source.earlyExpiry) {
+	if !source.policy.token(token) || !validClientCredentialsToken(token, source.now(), source.earlyExpiry) {
 		return nil, &ClientCredentialsError{Cause: ErrInvalidOAuth2Token}
 	}
 	authorization := token.Type() + " " + token.AccessToken
@@ -280,12 +330,13 @@ func validateClientCredentialsOptions(
 		return clientcredentials.Config{}, 0, nil,
 			fmt.Errorf("%w: client authentication style is unknown", ErrInvalidAuthentication)
 	}
-	scopes := append([]string(nil), options.Scopes...)
-	for _, scope := range scopes {
+	scopes := make([]string, len(options.Scopes))
+	for index, scope := range options.Scopes {
 		if !validOAuth2Scope(scope) {
 			return clientcredentials.Config{}, 0, nil,
 				fmt.Errorf("%w: OAuth2 scope is malformed", ErrInvalidAuthentication)
 		}
+		scopes[index] = strings.Clone(scope)
 	}
 	parameters, err := cloneOAuth2EndpointParams(options.EndpointParams)
 	if err != nil {
@@ -293,8 +344,8 @@ func validateClientCredentialsOptions(
 	}
 
 	return clientcredentials.Config{
-		ClientID:       options.ClientID,
-		ClientSecret:   options.ClientSecret,
+		ClientID:       strings.Clone(options.ClientID),
+		ClientSecret:   strings.Clone(options.ClientSecret),
 		TokenURL:       tokenURL.String(),
 		Scopes:         scopes,
 		EndpointParams: parameters,
@@ -308,7 +359,11 @@ func cloneOAuth2EndpointParams(parameters url.Values) (url.Values, error) {
 		if name == "client_id" || name == "client_secret" || name == "grant_type" || name == "scope" || name == "" {
 			return nil, fmt.Errorf("%w: reserved token endpoint parameter", ErrInvalidAuthentication)
 		}
-		clone[name] = append([]string(nil), values...)
+		copied := make([]string, len(values))
+		for index, value := range values {
+			copied[index] = strings.Clone(value)
+		}
+		clone[strings.Clone(name)] = copied
 	}
 
 	return clone, nil
@@ -343,12 +398,16 @@ func cloneOAuth2Token(token *oauth2.Token) *oauth2.Token {
 		return nil
 	}
 	clone := *token
+	clone.AccessToken = strings.Clone(token.AccessToken)
+	clone.TokenType = strings.Clone(token.TokenType)
+	clone.RefreshToken = strings.Clone(token.RefreshToken)
 
 	return &clone
 }
 
 type oauth2AuthEditor struct {
 	source ContextTokenSource
+	policy CredentialPolicy
 }
 
 func (editor oauth2AuthEditor) EditRequest(request *http.Request) error {
@@ -365,7 +424,7 @@ func (editor oauth2AuthEditor) EditRequest(request *http.Request) error {
 	if err := request.Context().Err(); err != nil {
 		return err
 	}
-	if !validContextOAuth2Token(editor.source, token) {
+	if !editor.policy.token(token) || !validContextOAuth2Token(editor.source, token) {
 		return &OAuth2TokenError{Cause: ErrInvalidOAuth2Token}
 	}
 	authorization := token.Type() + " " + token.AccessToken

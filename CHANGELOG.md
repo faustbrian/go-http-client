@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Apply shared finite credential admission before built-in authentication scans,
+  copies, encoding, and package-owned OAuth credential-cache admission. Defaults
+  are 64 KiB aggregate raw bytes, 256 KiB encoded output, and 256 collection
+  items; additive policy constructors and option fields permit bounded overrides.
+- Copy admitted retained credential strings while preserving OAuth opaque Extra
+  sharing. External token acquisition/metadata and HMAC callbacks retain explicit
+  trusted-collaborator ownership rather than whole-request resource guarantees.
+
+### Breaking
+
+- Oversized ordinary-valid credentials and returned OAuth tokens are now
+  rejected. This accepted-input narrowing requires a new major release and Go
+  major import suffix. Existing function signatures remain unchanged, but
+  unkeyed authentication options literals must include the added policy field.
+  Zero policy fields select finite defaults, never unlimited processing.
+
 ## [1.1.2] - 2026-10-01
 
 ### Changed

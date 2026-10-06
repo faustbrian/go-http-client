@@ -78,10 +78,13 @@ const (
 // HMACOptions supplies vendor-specific canonicalization and signature
 // placement while core performs the HMAC calculation. Secret is copied.
 type HMACOptions struct {
-	Secret         []byte
-	NewHash        func() hash.Hash
-	Canonicalize   func(request *http.Request) ([]byte, error)
-	ApplySignature func(request *http.Request, signature []byte) error
+	// CredentialPolicy bounds Secret before copying. Vendor callbacks own
+	// canonical bytes, hash resources, and signature placement/output limits.
+	CredentialPolicy CredentialPolicy
+	Secret           []byte
+	NewHash          func() hash.Hash
+	Canonicalize     func(request *http.Request) ([]byte, error)
+	ApplySignature   func(request *http.Request, signature []byte) error
 }
 
 // HMACError reports a signing failure without rendering its cause or inputs.
@@ -314,12 +317,28 @@ func canonicalOrigin(candidate *url.URL) (string, error) {
 // names containing a colon are rejected because the delimiter would make the
 // credentials ambiguous.
 func NewBasicAuth(username string, password string) (RequestEditor, error) {
+	return NewBasicAuthWithPolicy(username, password, CredentialPolicy{})
+}
+
+// NewBasicAuthWithPolicy applies finite raw and encoded credential admission
+// before validating or retaining Basic credentials.
+func NewBasicAuthWithPolicy(username string, password string, policy CredentialPolicy) (RequestEditor, error) {
+	policy, err := resolveCredentialPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
+	if err := policy.input(len(username), len(password)); err != nil {
+		return nil, err
+	}
+	if err := policy.encoded(basicCredentialBytes(len(username), len(password))); err != nil {
+		return nil, err
+	}
 	if username == "" || strings.ContainsRune(username, ':') ||
 		!utf8.ValidString(username) || !utf8.ValidString(password) {
 		return nil, fmt.Errorf("%w: basic credentials are malformed", ErrInvalidAuthentication)
 	}
 
-	return basicAuthEditor{username: username, password: password}, nil
+	return basicAuthEditor{username: strings.Clone(username), password: strings.Clone(password)}, nil
 }
 
 type basicAuthEditor struct {
@@ -338,6 +357,22 @@ func (editor basicAuthEditor) EditRequest(request *http.Request) error {
 
 // NewBearerAuth returns an immutable RFC 6750 bearer-token editor.
 func NewBearerAuth(token string) (RequestEditor, error) {
+	return NewBearerAuthWithPolicy(token, CredentialPolicy{})
+}
+
+// NewBearerAuthWithPolicy admits raw token bytes and the complete Bearer
+// header value before scanning or concatenating the credential.
+func NewBearerAuthWithPolicy(token string, policy CredentialPolicy) (RequestEditor, error) {
+	policy, err := resolveCredentialPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
+	if err := policy.input(len(token)); err != nil {
+		return nil, err
+	}
+	if err := policy.encoded(7, len(token)); err != nil {
+		return nil, err
+	}
 	if !validBearerToken(token) {
 		return nil, fmt.Errorf("%w: bearer token is malformed", ErrInvalidAuthentication)
 	}
@@ -348,6 +383,22 @@ func NewBearerAuth(token string) (RequestEditor, error) {
 // NewAPIKeyHeader returns an immutable header API-key editor. Existing values
 // for name are replaced rather than appended.
 func NewAPIKeyHeader(name string, value string) (RequestEditor, error) {
+	return NewAPIKeyHeaderWithPolicy(name, value, CredentialPolicy{})
+}
+
+// NewAPIKeyHeaderWithPolicy admits the aggregate raw name/value and encoded
+// name, colon-space separator and value before validation/canonicalization.
+func NewAPIKeyHeaderWithPolicy(name string, value string, policy CredentialPolicy) (RequestEditor, error) {
+	policy, err := resolveCredentialPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
+	if err := policy.input(len(name), len(value)); err != nil {
+		return nil, err
+	}
+	if err := policy.encoded(len(name), 2, len(value)); err != nil {
+		return nil, err
+	}
 	canonicalName, err := validateHeaderName(name)
 	if err != nil {
 		return nil, fmt.Errorf("%w: API key header is malformed", ErrInvalidAuthentication)
@@ -359,7 +410,7 @@ func NewAPIKeyHeader(name string, value string) (RequestEditor, error) {
 		return nil, fmt.Errorf("%w: API key header is malformed", ErrInvalidAuthentication)
 	}
 
-	return headerCredentialEditor{name: canonicalName, value: value}, nil
+	return headerCredentialEditor{name: strings.Clone(canonicalName), value: strings.Clone(value)}, nil
 }
 
 type headerCredentialEditor struct {
@@ -380,17 +431,41 @@ func (editor headerCredentialEditor) EditRequest(request *http.Request) error {
 // makes URL placement opt-in; callers should prefer headers whenever the
 // provider supports them.
 func NewAPIKeyQuery(name string, value string) (RequestEditor, error) {
+	return NewAPIKeyQueryWithPolicy(name, value, CredentialPolicy{})
+}
+
+// NewAPIKeyQueryWithPolicy admits the raw name/value before scans and their
+// escaped name=value bytes before encoding. Existing request query parsing and
+// re-encoding remain caller-owned and are not bounded by this credential policy.
+func NewAPIKeyQueryWithPolicy(name string, value string, policy CredentialPolicy) (RequestEditor, error) {
+	policy, err := resolveCredentialPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
+	if err := policy.input(len(name), len(value)); err != nil {
+		return nil, err
+	}
+	if err := policy.encoded(credentialQueryBytes(name), 1, credentialQueryBytes(value)); err != nil {
+		return nil, err
+	}
 	if err := validateQueryName(name); err != nil || value == "" {
 		return nil, fmt.Errorf("%w: API key query parameter is malformed", ErrInvalidAuthentication)
 	}
 
-	return queryCredentialEditor{name: name, value: value}, nil
+	return queryCredentialEditor{name: strings.Clone(name), value: strings.Clone(value)}, nil
 }
 
 // NewHMACAuth returns an immutable HMAC request editor. The vendor package
 // retains control of canonicalization and signature syntax so core does not
 // impose a provider-specific signing protocol.
 func NewHMACAuth(options HMACOptions) (RequestEditor, error) {
+	policy, err := resolveCredentialPolicy(options.CredentialPolicy)
+	if err != nil {
+		return nil, err
+	}
+	if err := policy.input(len(options.Secret)); err != nil {
+		return nil, err
+	}
 	if len(options.Secret) == 0 || options.NewHash == nil ||
 		options.Canonicalize == nil || options.ApplySignature == nil {
 		return nil, fmt.Errorf("%w: HMAC policy is incomplete", ErrInvalidAuthentication)
