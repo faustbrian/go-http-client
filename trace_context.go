@@ -122,7 +122,11 @@ func validTracestateKey(key string) bool {
 		return false
 	}
 	for index, part := range parts {
-		if part == "" || !lowerAlpha(part[0]) {
+		if part == "" {
+			return false
+		}
+		digitLeadingTenant := len(parts) == 2 && index == 0 && part[0] >= '0' && part[0] <= '9'
+		if !lowerAlpha(part[0]) && !digitLeadingTenant {
 			return false
 		}
 		maximum := 256
@@ -135,7 +139,7 @@ func validTracestateKey(key string) bool {
 			return false
 		}
 		for _, character := range part[1:] {
-			if !lowerAlpha(byte(character)) && (character < '0' || character > '9') &&
+			if (character < 'a' || character > 'z') && (character < '0' || character > '9') &&
 				!strings.ContainsRune("_-*/", character) {
 				return false
 			}

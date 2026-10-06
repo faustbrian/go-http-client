@@ -11,7 +11,7 @@ module httpclientretrypeer
 go 1.27.0
 
 require (
-	github.com/faustbrian/go-http-client v0.0.0
+	github.com/faustbrian/go-http-client/v2 v2.0.0
 	github.com/faustbrian/go-circuit-breaker v1.0.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8
@@ -19,7 +19,7 @@ require (
 	golang.org/x/oauth2 v0.37.0 // indirect
 )
 
-replace github.com/faustbrian/go-http-client => ${root}
+replace github.com/faustbrian/go-http-client/v2 => ${root}
 EOF
 awk '1' "${root}/go.sum" "${root}/specification/retry-peer.sum" >"${task}/go.sum"
 
@@ -34,7 +34,7 @@ import (
 	"testing"
 	"time"
 
-	httpclient "github.com/faustbrian/go-http-client"
+	httpclient "github.com/faustbrian/go-http-client/v2"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 )
 

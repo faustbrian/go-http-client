@@ -12,12 +12,20 @@ trace context, baggage, and configured sensitive headers. Query credentials
 are explicit and discouraged. Errors, logs, metrics, and persisted fixtures
 exclude live secret material by default.
 
-Use `EgressPolicy` for untrusted or dynamic destinations. The policy validates
+Egress filtering is opt-in: use `EgressPolicy` for untrusted or dynamic
+destinations. An unconfigured client performs caller-directed HTTP without
+address-class restrictions. The configured policy validates
 scheme, authority, port, origin, address class, CIDRs, redirects, proxies, and
 every resolved DNS answer at connection time. Metadata, private, loopback,
 link-local, multicast, Unix-socket, userinfo, and wildcard behavior require
 explicit treatment. Use `TLSPolicy` for custom roots, server identity, client
 identity, or additive SPKI pinning without disabling certificate validation.
+
+File-transfer destinations and resume partial paths are explicit trusted
+application capabilities, never paths selected by response headers. Callers
+must own the containing directories and prevent untrusted path selection or
+concurrent symlink replacement. Same-directory staging and atomic publication
+do not provide filesystem confinement against an attacker-controlled directory.
 
 Do not log request or response bodies. Redact bounded error excerpts before
 vendor mapping. Scope caches, cookies, OAuth tokens, coalescing, limiters,

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	httpclient "github.com/faustbrian/go-http-client"
+	httpclient "github.com/faustbrian/go-http-client/v2"
 )
 
 func TestVendorCompositionRetriesThenReusesCache(t *testing.T) {

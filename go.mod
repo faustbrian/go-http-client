@@ -1,4 +1,4 @@
-module github.com/faustbrian/go-http-client
+module github.com/faustbrian/go-http-client/v2
 
 go 1.27.0
 

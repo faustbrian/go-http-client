@@ -13,6 +13,11 @@ on:
         required: false
         default: false
         type: boolean
+      coverage_diagnostic:
+        description: Run exact root coverage with source-built development diagnostics
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -20,19 +25,128 @@ permissions:
 
 jobs:
   ci:
-    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@be0fd7d09b02c9dff29e6b00a5245ceac3cdfdfb # v1.8.5
+    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@2b0ebd71abdac3d9a0a904f2a652c5a2628ed734 # reviewed development tooling
     with:
-      tooling_sha: 531e4db50fd81a7201257a7b488a0cf22d333aca
-      release_dry_run: ${{ inputs.release_dry_run || false }}
+      tooling_sha: 2b0ebd71abdac3d9a0a904f2a652c5a2628ed734
+      source_bootstrap: true
+      public_dependencies: true
+      release_dry_run: ${{ (inputs.release_dry_run || false) && !inputs.coverage_diagnostic }}
+
+  coverage-diagnostic:
+    name: Exact root coverage diagnostic (development tooling)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.coverage_diagnostic }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      GOENV: 'off'
+      GOWORK: 'off'
+      GOTOOLCHAIN: local
+      GOMAXPROCS: '2'
+      GOFLAGS: -p=1
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+      GOPRIVATE: ''
+      GONOPROXY: ''
+      GONOSUMDB: ''
+    steps:
+      - name: Initialize task-owned diagnostic storage
+        env:
+          PRODUCER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          task_root="$RUNNER_TEMP/http-client-coverage-${{ github.run_id }}-${{ github.run_attempt }}"
+          mkdir -p "$task_root/build" "$task_root/mod" "$task_root/tmp" "$task_root/bin" "$task_root/report"
+          printf 'TASK_ROOT=%s\nGOCACHE=%s/build\nGOMODCACHE=%s/mod\nGOTMPDIR=%s/tmp\n' "$task_root" "$task_root" "$task_root" "$task_root" >> "$GITHUB_ENV"
+          printf 'requested_producer=%s\ntooling=498ed33c4a228ca14daaf04542f78193c1baa76c\nmode=source-built-development\n' "$PRODUCER_SHA" > "$task_root/report/coverage.txt"
+      - name: Reject combined diagnostic and release selectors
+        env:
+          RELEASE_DRY_RUN: ${{ inputs.release_dry_run }}
+        run: test "$RELEASE_DRY_RUN" = false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: .coverage-producer
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: faustbrian/go-library-tools
+          ref: 498ed33c4a228ca14daaf04542f78193c1baa76c
+          fetch-depth: 0
+          persist-credentials: false
+          path: .coverage-tooling
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Build immutable development verifier
+        env:
+          PRODUCER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git -C .coverage-producer rev-parse HEAD)" = "$PRODUCER_SHA"
+          test "$(git -C .coverage-tooling rev-parse HEAD)" = 498ed33c4a228ca14daaf04542f78193c1baa76c
+          printf 'verified_producer=%s\n' "$PRODUCER_SHA" >> "$TASK_ROOT/report/coverage.txt"
+          cd .coverage-tooling
+          go build -mod=readonly -o "$TASK_ROOT/bin/golib" ./cmd/golib
+      - name: Run exact root coverage once
+        working-directory: .coverage-producer
+        run: |
+          set -euo pipefail
+          set +e
+          "$TASK_ROOT/bin/golib" coverage --module . > "$TASK_ROOT/coverage.raw" 2>&1
+          coverage_exit=$?
+          set -e
+          printf 'coverage_exit=%s\n' "$coverage_exit" >> "$TASK_ROOT/report/coverage.txt"
+          # Retain only the verifier's bounded source coordinates, never raw
+          # test output, source excerpts, or caller-controlled payload text.
+          awk '
+            /^uncovered production blocks:$/ { report = 1; print; next }
+            report && /^  [A-Za-z0-9_.-]+\.go:[0-9]+\.[0-9]+,[0-9]+\.[0-9]+$/ { print; next }
+            report && /^  \([0-9]+ additional blocks omitted\)$/ { print; next }
+            { report = 0 }
+          ' "$TASK_ROOT/coverage.raw" >> "$TASK_ROOT/report/coverage.txt"
+          cat "$TASK_ROOT/report/coverage.txt"
+          exit "$coverage_exit"
+      - name: Upload bounded diagnostic coordinates
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: exact-root-coverage-diagnostic
+          path: ${{ env.TASK_ROOT }}/report/coverage.txt
+          if-no-files-found: error
+          retention-days: 3
+      - name: Clean task-owned verifier, checkouts, and caches
+        if: always()
+        run: |
+          set -euo pipefail
+          if test -d "$TASK_ROOT"; then
+            chmod -R u+w "$TASK_ROOT"
+            find "$TASK_ROOT" -depth -delete
+          fi
+          for checkout in .coverage-producer .coverage-tooling; do
+            if test -d "$checkout"; then
+              find "$checkout" -depth -delete
+            fi
+          done
 
   required:
     name: Required
     if: always()
-    needs: ci
+    needs: [ci, coverage-diagnostic]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require shared workflow
         env:
           CI_RESULT: ${{ needs.ci.result }}
-        run: test "${CI_RESULT}" = success
+          COVERAGE_RESULT: ${{ needs.coverage-diagnostic.result }}
+          COVERAGE_DIAGNOSTIC: ${{ inputs.coverage_diagnostic || false }}
+        run: |
+          if test "$COVERAGE_DIAGNOSTIC" = true; then
+            test "$CI_RESULT" = success && test "$COVERAGE_RESULT" = success
+          else
+            test "$CI_RESULT" = success && test "$COVERAGE_RESULT" = skipped
+          fi

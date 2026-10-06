@@ -4,7 +4,7 @@ Every exported identifier is documented at its declaration and is available
 through standard Go documentation:
 
 ```console
-go doc -all github.com/faustbrian/go-http-client
+go doc -all github.com/faustbrian/go-http-client/v2
 ```
 
 The CI `docs` gate verifies that complete generated reference. The stable API

@@ -567,6 +567,43 @@ func TestW3CTraceContextIsValidatedAndInjectedOnTrustedAttempts(t *testing.T) {
 	}
 }
 
+func TestW3CTraceContextRejectsNonASCIIKeyContinuations(t *testing.T) {
+	const parent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+	ctx, err := WithW3CTraceContext(context.Background(), parent, "a\u0161=ok")
+	if ctx != nil || !errors.Is(err, ErrInvalidTraceContext) {
+		t.Fatal("non-ASCII tracestate key was retained instead of rejected")
+	}
+	const state = "aa=ok,a0@vendor=ok"
+	ctx, err = WithW3CTraceContext(context.Background(), parent, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trace, ok := W3CTraceContextFromContext(ctx)
+	if !ok || trace.Traceparent != parent || trace.Tracestate != state {
+		t.Fatal("valid ASCII trace context was not preserved")
+	}
+}
+
+func TestW3CTraceContextTenantKeyInitialCharacters(t *testing.T) {
+	const parent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+	for _, state := range []string{"0@vendor=ok", "9tenant@vendor=ok"} {
+		ctx, err := WithW3CTraceContext(context.Background(), parent, state)
+		if err != nil {
+			t.Fatalf("valid tenant key %q was rejected: %v", state, err)
+		}
+		trace, ok := W3CTraceContextFromContext(ctx)
+		if !ok || trace.Traceparent != parent || trace.Tracestate != state {
+			t.Fatalf("valid tenant key %q was not retained exactly", state)
+		}
+	}
+	for _, state := range []string{"0simple=ok", "tenant@0system=ok"} {
+		ctx, err := WithW3CTraceContext(context.Background(), parent, state)
+		if ctx != nil || !errors.Is(err, ErrInvalidTraceContext) {
+			t.Fatalf("invalid simple or system key %q was accepted", state)
+		}
+	}
+}
+
 func TestW3CTraceContextPrimitiveBoundaries(t *testing.T) {
 	t.Parallel()
 
@@ -590,7 +627,7 @@ func TestW3CTraceContextPrimitiveBoundaries(t *testing.T) {
 	validKeys := []string{
 		strings.Repeat("a", 256),
 		strings.Repeat("a", 241) + "@" + strings.Repeat("b", 14),
-		"a0", "a9", "a_", "a-", "a*", "a/", "z",
+		"aa", "az", "a0", "a9", "a_", "a-", "a*", "a/", "z",
 	}
 	for _, key := range validKeys {
 		if !validTracestateKey(key) {

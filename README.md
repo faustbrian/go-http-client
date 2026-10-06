@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
 [![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
-[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-http-client.svg)](https://pkg.go.dev/github.com/faustbrian/go-http-client)
+[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-http-client/v2.svg)](https://pkg.go.dev/github.com/faustbrian/go-http-client/v2)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-http-client?sort=semver)](https://github.com/faustbrian/go-http-client/releases)
 [![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -22,8 +22,9 @@ Vendor request and response models remain application-owned.
 
 ## Status and lifecycle
 
-The module is a stable v1 library. The current stable release is `v1.1.2`,
-the minimum supported Go version is 1.27.0, and development remains active.
+The current published stable release is `v1.1.2`. The security-contract root
+release is prepared as `v2.0.0` and is not yet published. The minimum supported
+Go version is 1.27.0, and development remains active.
 It contains one public package and no independently versioned subpackages.
 
 Construct a `Client` with `New`, share it across goroutines, and call `Close`
@@ -33,8 +34,10 @@ response. Consuming response helpers take and close body ownership.
 
 ## Installation
 
+After root v2 is published, use its major-qualified module and import path:
+
 ```sh
-go get github.com/faustbrian/go-http-client
+go get github.com/faustbrian/go-http-client/v2@v2.0.0
 ```
 
 ## Quick start
@@ -47,7 +50,7 @@ import (
 	"log"
 	"net/http"
 
-	httpclient "github.com/faustbrian/go-http-client"
+	httpclient "github.com/faustbrian/go-http-client/v2"
 )
 
 func main() {
@@ -90,7 +93,7 @@ build owns its URL, headers, query values, and body state.
 
 | Import path | Package | Use |
 | --- | --- | --- |
-| `github.com/faustbrian/go-http-client` | `httpclient` | Client lifecycle, immutable requests and bodies, middleware, authentication, retries and admission policies, caching, pagination, bounded response handling, transfers, egress and TLS policy, telemetry, and test fixtures. |
+| `github.com/faustbrian/go-http-client/v2` | `httpclient` | Client lifecycle, immutable requests and bodies, middleware, authentication, retries and admission policies, caching, pagination, bounded response handling, transfers, egress and TLS policy, telemetry, and test fixtures. |
 
 There are no public subpackages or adapter modules. Compose these companions
 only at their distinct ownership boundaries:

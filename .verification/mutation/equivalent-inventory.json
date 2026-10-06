@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "packages": [
+    {
+      "module_directory": ".",
+      "package_directory": ".",
+      "source_digest": "6b2113768b11bd135e6aa1b705d5df1dfeae790942a6f14152149ef015786301",
+      "gremlins_version": "v0.6.0",
+      "gremlins_verifier_sha256": "c28707fd4ce35dd228260de564107c1fb7726e42d4e9ea2bf9e988083e1f3b5b",
+      "mutations": [
+        {
+          "file_name": "credential_policy.go",
+          "type": "INVERT_LOGICAL",
+          "line": 107,
+          "column": 33,
+          "contract_domain": "Stable legal client-credentials constructor inputs under resolved finite item policy; same admission result and no pre-refusal copying, callbacks or transport operations",
+          "reason": "Review owner /root/http_item_count_equivalence_final_review; date 2026-10-06; expiry 2026-11-05 or any bound source/verifier change. Let 1<=I<=4096, S=len(Scopes), P=len(EndpointParams). For || to &&, S>I forces P>I-S and identical immediate refusal. With S<=I, newly admitted P>I-S implies P>=1 and items=I-S-P<0; the first map entry has len(values)>=0 and returns the same credentialLimitError before copying, validation or source construction. Original accepted partitions are unchanged. Concurrent mutation of caller collections is outside the stable-input contract. Native LIVED status is retained."
+        },
+        {
+          "file_name": "credential_policy.go",
+          "type": "INVERT_NEGATIVES",
+          "line": 107,
+          "column": 71,
+          "contract_domain": "Stable legal client-credentials constructor inputs under resolved finite item policy; same admission result and no pre-refusal copying, callbacks or transport operations",
+          "reason": "Review owner /root/http_item_count_equivalence_final_review; date 2026-10-06; expiry 2026-11-05 or any bound source/verifier change. Gremlins v0.6.0 changes binary minus to plus. S>I still rejects immediately. Otherwise I+S<=8192 without overflow; newly admitted I-S<P<=I+S implies P>=1 and negative items=I-S-P. The first map value-count guard returns the same credentialLimitError before copying, validation or source construction. All original accepted partitions remain unchanged. The final residual lies within [-MaxInt,4096] even if intermediate S+P wraps; Go integer arithmetic preserves that representable result. Concurrent caller collection mutation is excluded; native LIVED status is retained."
+        },
+        {
+          "file_name": "credential_policy.go",
+          "type": "ARITHMETIC_BASE",
+          "line": 107,
+          "column": 71,
+          "contract_domain": "Stable legal client-credentials constructor inputs under resolved finite item policy; same admission result and no pre-refusal copying, callbacks or transport operations",
+          "reason": "Review owner /root/http_item_count_equivalence_final_review; date 2026-10-06; expiry 2026-11-05 or any bound source/verifier change. This Gremlins v0.6.0 operator also changes the same binary minus to plus, identical to INVERT_NEGATIVES at this coordinate. S>I rejects immediately; otherwise I+S<=8192. Newly admitted I-S<P<=I+S guarantees a nonempty map and negative residual I-S-P, so its first value-count guard returns the identical error before validation, copying, callbacks or source construction. Accepted partitions are unchanged; final residual is representable despite possible intermediate S+P wrap. Concurrent caller collection mutation is excluded; native LIVED status is retained."
+        }
+      ]
+    }
+  ]
+}

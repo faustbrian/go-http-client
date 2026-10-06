@@ -15,6 +15,7 @@ type HTTPDoer interface {
 }
 
 // ResumeFileOptions configures persistent partial-file continuation.
+// PartialPath must be trusted and in the caller-controlled destination directory.
 type ResumeFileOptions struct {
 	PartialPath    string
 	Mode           os.FileMode
@@ -39,6 +40,8 @@ func (err *ResumeError) Unwrap() error { return err.Cause }
 // ResumeDownloadToFile continues a same-directory partial file, validates the
 // complete representation, and atomically publishes destination. Failed range
 // appends roll back to their prior safe offset.
+// Destination and PartialPath must be trusted caller-selected paths in a
+// caller-controlled directory; this operation provides no symlink confinement.
 func ResumeDownloadToFile(
 	ctx context.Context,
 	doer HTTPDoer,
@@ -69,7 +72,7 @@ type resumeFS interface {
 type osResumeFS struct{}
 
 func (osResumeFS) OpenFile(name string, flag int, mode os.FileMode) (resumeFile, error) {
-	return os.OpenFile(name, flag, mode)
+	return os.OpenFile(name, flag, mode) // #nosec G304 -- Open the explicit caller-owned partial path; no response or header selects this path.
 }
 
 func (osResumeFS) Rename(oldPath string, newPath string) error {
@@ -77,7 +80,7 @@ func (osResumeFS) Rename(oldPath string, newPath string) error {
 }
 
 func (osResumeFS) OpenDirectory(directory string) (fileTransferDirectory, error) {
-	return os.Open(directory)
+	return os.Open(directory) // #nosec G304 -- Sync the trusted caller-controlled destination directory after publication.
 }
 
 func resumeDownloadToFile(

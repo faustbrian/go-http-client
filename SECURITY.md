@@ -6,6 +6,11 @@ The latest stable v1 release and `main` are supported. The latest
 minor release of the current major version receives security fixes. Older
 release lines may receive fixes at maintainer discretion.
 
+The prepared root `v2.0.0` security-contract release is not yet published.
+Its finite credential-admission safeguards do not apply to consumers that
+still import published v1. Preparing or publishing v2 does not withdraw the
+latest-stable-v1 support promise above.
+
 ## Reporting a vulnerability
 
 Do not open a public issue for a suspected vulnerability. Use GitHub private
