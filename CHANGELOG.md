@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Validate tracestate key continuation characters without narrowing Unicode
+  runes to bytes. Non-ASCII keys are rejected before context retention.
+- Accept digit-leading multi-tenant tracestate identifiers while retaining
+  lowercase-leading simple and system keys required by the W3C grammar.
+- Clarify opt-in egress enforcement and trusted caller-owned file destinations;
+  document narrow scanner dispositions at their capability boundaries.
+
 - Prepare root `v2.0.0` at `github.com/faustbrian/go-http-client/v2` for finite
   credential admission and the new option fields. Consumers must migrate
   nominal request and client types together; wrappers exposing those types

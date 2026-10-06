@@ -78,7 +78,7 @@ file-system ports.
 
 | Surface | Default policy | Explicit opt-in or caller duty | Evidence |
 | --- | --- | --- | --- |
-| URL and egress | Absolute HTTP(S), no userinfo; public HTTPS:443 egress | Additional schemes, hosts, ports, origins, or address classes | URL and egress fuzz/tests |
+| URL and egress | Absolute HTTP(S), no userinfo; egress filtering is opt-in | Enable `EgressPolicy` for untrusted destinations; its default allows public HTTPS:443, with explicit additional origins or address classes | URL and egress fuzz/tests |
 | TLS | TLS 1.2+, platform roots, hostname verification | Custom roots, fixed name, client certs, additive SPKI pins | real TLS tests |
 | Authentication | HTTPS and initial-origin trust only | `AllowInsecure` for local tests; exact extra origins | auth redirect/TLS tests and fuzz |
 | Redirects | standard method/body rules; attempt policy reruns | caller redirect callback; exact trusted origins | real redirects and redirect fuzz |

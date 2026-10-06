@@ -463,7 +463,7 @@ func (client *Client) do(request *http.Request, pipeline Pipeline) (*http.Respon
 			transport: transport,
 		}
 
-		operationResponse, operationErr := standardClient.Do(operationRequest)
+		operationResponse, operationErr := standardClient.Do(operationRequest) // #nosec G704 -- Caller-directed HTTP capability; untrusted or dynamic destinations require explicit EgressPolicy enforcement above.
 		if operationErr != nil {
 			return nil, newTransportError(operationRequest, operationErr)
 		}

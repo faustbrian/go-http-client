@@ -33,6 +33,8 @@ func (err *FileTransferError) Unwrap() error { return err.Cause }
 
 // CopyResponseToFile streams into a same-directory temporary file and replaces
 // destination only after transfer validation, file sync, and close succeed.
+// The caller must select a trusted destination in a caller-controlled directory;
+// this operation does not confine attacker-selected paths or symlink changes.
 func CopyResponseToFile(
 	ctx context.Context,
 	response *http.Response,
@@ -75,7 +77,7 @@ func (osFileTransferFS) Rename(oldPath string, newPath string) error {
 }
 
 func (osFileTransferFS) OpenDirectory(directory string) (fileTransferDirectory, error) {
-	return os.Open(directory)
+	return os.Open(directory) // #nosec G304 -- Sync the caller-selected destination directory; the public contract requires trusted paths and directory ownership.
 }
 
 func copyResponseToFile(
