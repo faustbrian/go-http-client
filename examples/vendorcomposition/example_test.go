@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	httpclient "github.com/faustbrian/go-http-client"
+	httpclient "github.com/faustbrian/go-http-client/v2"
 )
 
 // Example demonstrates the supported vendor boundary: the application owns

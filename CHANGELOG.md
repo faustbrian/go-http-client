@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Prepare root `v2.0.0` at `github.com/faustbrian/go-http-client/v2` for finite
+  credential admission and the new option fields. Consumers must migrate
+  nominal request and client types together; wrappers exposing those types
+  need their own compatibility decision. The latest public root remains
+  `v1.1.2`; v2 is not yet published.
+
 - Apply shared finite credential admission before built-in authentication scans,
   copies, encoding, and package-owned OAuth credential-cache admission. Defaults
   are 64 KiB aggregate raw bytes, 256 KiB encoded output, and 256 collection

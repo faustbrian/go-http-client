@@ -5,14 +5,14 @@
   "modules": [
     {
       "directory": ".",
-      "module_path": "github.com/faustbrian/go-http-client",
+      "module_path": "github.com/faustbrian/go-http-client/v2",
       "go_version": "1.27.0",
       "packages": [
         {
           "module_directory": ".",
           "directory": ".",
           "name": "httpclient",
-          "import_path": "github.com/faustbrian/go-http-client",
+          "import_path": "github.com/faustbrian/go-http-client/v2",
           "kind": "public",
           "production": true,
           "executable": true,
@@ -29,7 +29,7 @@
       "family_label": "Integration And Data Movement",
       "family_description": "Bounded external I/O, data movement, provider boundaries, and derived search state.",
       "family_order": 7,
-      "version": "1.1.2",
+      "version": "2.0.0",
       "tag_prefix": "v",
       "owned_dependencies": [
         "github.com/faustbrian/go-circuit-breaker"
@@ -86,10 +86,10 @@
         ],
         "public_package_identifier": "httpclient",
         "primary_entry_packages": [
-          "github.com/faustbrian/go-http-client"
+          "github.com/faustbrian/go-http-client/v2"
         ],
         "package_selection": {
-          "github.com/faustbrian/go-http-client": "Use for bounded outbound HTTP transport, request construction, authentication, middleware, response ownership, and explicitly selected HTTP policy."
+          "github.com/faustbrian/go-http-client/v2": "Use for bounded outbound HTTP transport, request construction, authentication, middleware, response ownership, and explicitly selected HTTP policy."
         },
         "lifecycle_status": "active",
         "maturity": "stable",
@@ -149,7 +149,7 @@
           "examples": "docs/adoption-examples.md",
           "faq": "docs/faq-troubleshooting.md",
           "changelog": "CHANGELOG.md",
-          "pkg_go_dev": "https://pkg.go.dev/github.com/faustbrian/go-http-client",
+          "pkg_go_dev": "https://pkg.go.dev/github.com/faustbrian/go-http-client/v2",
           "ecosystem_index": "https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md"
         },
         "known_good_compatibility_sets": [],

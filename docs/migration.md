@@ -1,5 +1,21 @@
 # Migration Guide
 
+## Root v2 import identity
+
+The prepared release is `v2.0.0`; it is not yet published. The latest public
+root remains `v1.1.2`. After publication, select
+`github.com/faustbrian/go-http-client/v2@v2.0.0` and change application imports
+to `github.com/faustbrian/go-http-client/v2`. There are no independent nested
+modules or version-specific source directories.
+
+Root v1 and v2 exported types have distinct Go identities. Migrate each
+composed request/client boundary together. A published wrapper that exports
+`RequestSpec` or `LayerOptions`, including Localized v4, cannot substitute v2
+types in a compatible patch; it needs an explicit compatible route or a
+separately authorized major migration. Maintained HTTP and Service integration
+fixtures adopt the actual public v2 module only after publication. Existing v1
+consumers do not acquire v2 credential bounds by retaining their old imports.
+
 ## Finite credential admission
 
 Built-in authentication now rejects oversized ordinary-valid credentials and
