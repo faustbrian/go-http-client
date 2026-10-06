@@ -22,9 +22,10 @@ Vendor request and response models remain application-owned.
 
 ## Status and lifecycle
 
-The current published stable release is `v1.1.2`. The security-contract root
-release is prepared as `v2.0.0` and is not yet published. The minimum supported
-Go version is 1.27.0, and development remains active.
+The root v2 release line provides finite credential admission. The minimum
+supported Go version is 1.27.0, and development remains active. See
+[published releases](https://github.com/faustbrian/go-http-client/releases)
+for available versions; historical v1 remains available on its original path.
 It contains one public package and no independently versioned subpackages.
 
 Construct a `Client` with `New`, share it across goroutines, and call `Close`
@@ -34,7 +35,7 @@ response. Consuming response helpers take and close body ownership.
 
 ## Installation
 
-After root v2 is published, use its major-qualified module and import path:
+Use the root v2 release's major-qualified module and import path:
 
 ```sh
 go get github.com/faustbrian/go-http-client/v2@v2.0.0

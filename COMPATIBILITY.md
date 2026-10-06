@@ -1,11 +1,12 @@
 # Compatibility Policy
 
-This repository publishes one stable v1 module:
-`github.com/faustbrian/go-http-client`. Install the current stable release with
-`go get github.com/faustbrian/go-http-client@v1.1.2`. Root releases use
-`v<version>` tags. The module requires Go 1.27.0, as declared in `go.mod`; a
-future increase to that minimum is a compatibility change announced in the
-changelog.
+The root v2 release line uses `github.com/faustbrian/go-http-client/v2`.
+Select it with `go get github.com/faustbrian/go-http-client/v2@v2.0.0`.
+Historical v1 releases remain available at the original
+`github.com/faustbrian/go-http-client` module and import path. Root releases
+use `v<version>` tags from main. The module requires Go 1.27.0, as declared in
+`go.mod`; a future increase to that minimum is a compatibility change announced
+in the changelog.
 
 Before `v1`, minor releases MAY contain reviewed breaking changes, but every
 break MUST be documented with migration guidance. Patch releases MUST remain

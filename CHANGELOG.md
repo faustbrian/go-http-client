@@ -5,7 +5,9 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+
+## [2.0.0] - 2026-10-06
 
 ### Changed
 
@@ -16,11 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarify opt-in egress enforcement and trusted caller-owned file destinations;
   document narrow scanner dispositions at their capability boundaries.
 
-- Prepare root `v2.0.0` at `github.com/faustbrian/go-http-client/v2` for finite
+- Adopt root `v2.0.0` at `github.com/faustbrian/go-http-client/v2` for finite
   credential admission and the new option fields. Consumers must migrate
   nominal request and client types together; wrappers exposing those types
-  need their own compatibility decision. The latest public root remains
-  `v1.1.2`; v2 is not yet published.
+  need their own compatibility decision. Historical v1 releases remain
+  available on their original module and import path.
 
 - Apply shared finite credential admission before built-in authentication scans,
   copies, encoding, and package-owned OAuth credential-cache admission. Defaults
@@ -374,7 +376,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   validator-safe append, automatic full-response restart, append rollback,
   whole-file digest validation, and atomic publication.
 
-[Unreleased]: https://github.com/faustbrian/go-http-client/compare/v1.1.2...HEAD
 [1.1.2]: https://github.com/faustbrian/go-http-client/releases/tag/v1.1.2
 [1.1.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.1.0
 [1.0.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.0.0

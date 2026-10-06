@@ -1,8 +1,8 @@
 # Compatibility Policy
 
-The prepared root `v2.0.0` release uses the `/v2` module and import suffix for
-finite credential admission and new option fields. It is not yet published;
-`v1.1.2` remains the latest public root. The historical v1 API baseline is
+The root `v2.0.0` release uses the `/v2` module and import suffix for finite
+credential admission and new option fields. Historical v1 releases remain
+available on their original module and import path. The v1 API baseline is
 retained separately from the generated v2 baseline. Nominal request and option
 types are not interchangeable across those major import paths.
 

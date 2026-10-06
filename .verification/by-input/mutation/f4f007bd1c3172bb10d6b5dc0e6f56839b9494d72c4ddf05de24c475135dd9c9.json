@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "repository": "github.com/faustbrian/go-http-client",
+  "module": ".",
+  "package": ".",
+  "gate": "mutation",
+  "input_digest": "sha256:f4f007bd1c3172bb10d6b5dc0e6f56839b9494d72c4ddf05de24c475135dd9c9",
+  "verifier_digest": "sha256:c28707fd4ce35dd228260de564107c1fb7726e42d4e9ea2bf9e988083e1f3b5b",
+  "result": "passed",
+  "report_digest": "sha256:cab09935d7bd7fac2904722101c0b7f9e164bec54601da7b9830ebe53845eae2",
+  "environment": {
+    "CGO_ENABLED": "1",
+    "GOARCH": "amd64",
+    "GOOS": "linux",
+    "GOVERSION": "go1.27.0",
+    "gremlins_binary_sha256": "sha256:804f246da99cba345a151e694f90287d54263a28c24fe69e3f89de00b5572493"
+  },
+  "completed_at": "2026-10-06T19:15:36.841186104Z"
+}
