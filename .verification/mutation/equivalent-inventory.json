@@ -6,7 +6,7 @@
       "package_directory": ".",
       "source_digest": "6b2113768b11bd135e6aa1b705d5df1dfeae790942a6f14152149ef015786301",
       "gremlins_version": "v0.6.0",
-      "gremlins_verifier_sha256": "c28707fd4ce35dd228260de564107c1fb7726e42d4e9ea2bf9e988083e1f3b5b",
+      "gremlins_verifier_sha256": "390cf4085a0063fe5dcaa29ce942ea4cb8c7876347da90376b65dc8c5c811104",
       "mutations": [
         {
           "file_name": "credential_policy.go",
