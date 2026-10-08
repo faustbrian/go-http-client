@@ -9,7 +9,9 @@
    commit.
 5. Create a signed `vMAJOR.MINOR.PATCH` tag at that verified commit and push the
    tag without force.
-6. The release workflow reruns the full gate and creates GitHub release notes.
+6. Publish the GitHub release through the maintainer release procedure. The
+   deployed CI workflow validates release inputs and rehearses checks; it does
+   not publish a release automatically.
 7. Verify pkg.go.dev documentation and downstream smoke tests, then announce
    any migration or security notes.
 
