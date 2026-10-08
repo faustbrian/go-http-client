@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Update the circuit-breaker dependency to v1.0.1, retaining its existing
+  public API and runtime behavior. Its Go 1.27.0 minimum matches the
+  HTTP client’s existing toolchain requirement.
+
 ## [2.0.0] - 2026-10-06
 
 ### Changed
