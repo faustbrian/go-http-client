@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.0.2] - 2026-10-10
+
 ### Security
 
 - Update x/net to v0.60.0 and build with Go 1.27.2 for the October 2026
