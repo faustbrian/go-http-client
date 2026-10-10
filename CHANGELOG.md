@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Security
+
+- Update x/net to v0.60.0 and build with Go 1.27.2 for the October 2026
+  HTTP and TLS security fixes. Rebuild applications with Go 1.27.2 or later;
+  updating this module alone does not replace an application's standard library.
+  The Go language minimum and owned public APIs remain unchanged.
+
 ## [2.0.1] - 2026-10-08
 
 ### Changed
