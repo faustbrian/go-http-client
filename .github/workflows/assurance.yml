@@ -1,0 +1,21 @@
+name: Selected assurance
+
+on:
+  schedule:
+    - cron: '41 3 * * 5'
+  workflow_dispatch:
+    inputs:
+      fuzz_target:
+        description: Exact declared fuzz selector, for example ^FuzzRedirectCredentialBoundary$
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  assurance:
+    uses: faustbrian/go-library-tools/.github/workflows/library-assurance.yml@df42d70bd91cc947c93265f237d5387246bac88e
+    with:
+      tooling_sha: df42d70bd91cc947c93265f237d5387246bac88e
+      fuzz_target: ${{ inputs.fuzz_target || '' }}
