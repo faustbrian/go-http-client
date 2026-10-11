@@ -7,12 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.0.3] - 2026-10-11
+
 ### Fixed
 
 - Reject ASCII control characters in both HTTP Basic credential components,
   as required by RFC 7617 (HTTPCLIENT-DEC-004). Valid UTF-8, printable
   characters, password colons,
   empty passwords and existing finite credential limits remain unchanged.
+  ([c2c0c6babd](https://github.com/faustbrian/go-http-client/commit/c2c0c6babd3336738575e6318bde72082026b76a))
+
+### Changed
+
+- Keep ordinary contributor checks focused and move selected exploratory
+  assurance to a separate bounded schedule, using the published verifier.
+  ([ea53d380d9](https://github.com/faustbrian/go-http-client/commit/ea53d380d945c36e68a9b71934eb2b67e13ddb1d),
+  [b3aa28ac6f](https://github.com/faustbrian/go-http-client/commit/b3aa28ac6f4e9193050842ceee9dbec88e1ecd44),
+  [2b8379686d](https://github.com/faustbrian/go-http-client/commit/2b8379686dd30ff0984bc9a5268a55b1230bfc54))
 
 ## [2.0.2] - 2026-10-10
 
