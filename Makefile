@@ -2,9 +2,12 @@ SHELL := /usr/bin/env bash
 
 GOLIB ?= golib
 
-.PHONY: check ci cohesion inventory repository-check
+.PHONY: check check-full ci cohesion inventory repository-check
 
 check:
+	$(GOLIB) check --local --all
+
+check-full:
 	$(GOLIB) check --all
 
 ci: repository-check cohesion check

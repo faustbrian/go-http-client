@@ -24,6 +24,15 @@ api:
 
 operations:
   - module: .
+    gate: local-test
+    steps:
+      - type: go-test
+        packages: [.]
+        run: '^Test(TransportIntegrationReusesHTTP1Connection|TransportIntegrationTotalTimeoutCancelsRequest|LifecycleLeakCloseCancelsPendingOperation|DrainResponseCompletesWithinBoundAndCloses)$'
+        race: true
+        count: 1
+        timeout: 2m
+  - module: .
     gate: docs
     steps:
       - type: make
