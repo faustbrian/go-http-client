@@ -116,7 +116,8 @@ Authoritative URL: https://www.rfc-editor.org/rfc/rfc9110.txt
   editor to each trusted HTTPS attempt. Generic clients commonly expose raw
   setters without origin enforcement; vendor API-key formats conflict.
 - **Selected behavior, security and resource consequences, compatibility and wire consequences:**
-  Use standard Basic and Bearer forms;
+  Use standard Basic and Bearer forms; reject RFC 5234 ASCII CTL bytes
+  (0x00–0x1f and 0x7f) in both Basic components before retaining credentials;
   make API-key placement caller-named and explicitly nonstandard; require HTTPS
   except narrow local-test policy; reject conflicting state; apply only to
   trusted canonical origins; and redact bounded immutable credentials. This
@@ -125,10 +126,12 @@ Authoritative URL: https://www.rfc-editor.org/rfc/rfc9110.txt
   `TestCredentialEditorsApplyBasicBearerAndAPIKeys`,
   `TestAuthenticationMiddlewareReappliesOnlyWithinTrustedOrigin`,
   `TestAuthenticationRejectsCleartextCredentialTransport`, and
+  `TestBasicAuthRejectsASCIIControls`,
+  `TestBasicAuthPreservesValidCredentialWireValues`, and
   `FuzzAuthenticationInputs` cover credential editors and authentication
   middleware. Reconsider for a standardized supported vendor scheme.
 
-Decision data: `{"id":"HTTPCLIENT-DEC-004","title":"Basic, Bearer, and API-key request authentication","status":"resolved","owner":"http-client maintainers","classification":"omission","decision_scope":"defensive","specification":"RFC 7617 Basic HTTP Authentication","version":"RFC-7617","source_authority":"rfc7617","section":"2","requirement_strength":"not specified","issue":"Basic, Bearer, and API-key request authentication exposes observable policy that the cited specification does not completely select for a reusable integration client.","interpretations":["Delegate every choice to the underlying Go implementation","Apply explicit package policy at the owned boundary"],"peer_behavior":"Maintained implementations expose materially different policy defaults for this boundary.","selected_behavior":"Use standard Basic and Bearer wire forms and explicit API-key placement only on trusted HTTPS attempts.","rationale":"The selected behavior makes compatibility, trust, lifecycle, and failure semantics explicit.","security_consequences":"Untrusted protocol input is handled only within the documented validation and trust policy.","resource_consequences":"Processing, retained state, waits, and stream ownership remain within documented finite bounds.","compatibility_consequences":"Changing this selection requires specification-decision and compatibility review.","wire_consequences":"Wire-visible behavior follows the selected policy and cited executable evidence.","executable_evidence":["TestCredentialEditorsApplyBasicBearerAndAPIKeys","TestAuthenticationMiddlewareReappliesOnlyWithinTrustedOrigin","TestAuthenticationRejectsCleartextCredentialTransport"],"fixture_evidence":[],"fuzz_evidence":["FuzzAuthenticationInputs"],"interoperability_evidence":[],"differential_evidence":[],"public_apis":["NewBasicAuth","NewBearerAuth","NewAPIKeyAuth","NewAuthenticationMiddleware"],"documentation":["docs/specification-decisions.md"],"upstream_status":"No unresolved upstream erratum is known for this selected package policy.","reconsider_when":"A pinned source, monitored erratum, maintained peer, or supported Go contract changes this boundary."}`
+Decision data: `{"id":"HTTPCLIENT-DEC-004","title":"Basic, Bearer, and API-key request authentication","status":"resolved","owner":"http-client maintainers","classification":"omission","decision_scope":"defensive","specification":"RFC 7617 Basic HTTP Authentication","version":"RFC-7617","source_authority":"rfc7617","section":"2","requirement_strength":"not specified","issue":"Basic, Bearer, and API-key request authentication exposes observable policy that the cited specification does not completely select for a reusable integration client.","interpretations":["Delegate every choice to the underlying Go implementation","Apply explicit package policy at the owned boundary"],"peer_behavior":"Maintained implementations expose materially different policy defaults for this boundary.","selected_behavior":"Use standard Basic and Bearer wire forms, reject ASCII CTL in both Basic components, and apply explicit API-key placement only on trusted HTTPS attempts.","rationale":"The selected behavior makes compatibility, trust, lifecycle, and failure semantics explicit.","security_consequences":"Untrusted protocol input is handled only within the documented validation and trust policy.","resource_consequences":"Processing, retained state, waits, and stream ownership remain within documented finite bounds.","compatibility_consequences":"Changing this selection requires specification-decision and compatibility review.","wire_consequences":"Wire-visible behavior follows the selected policy and cited executable evidence.","executable_evidence":["TestCredentialEditorsApplyBasicBearerAndAPIKeys","TestAuthenticationMiddlewareReappliesOnlyWithinTrustedOrigin","TestAuthenticationRejectsCleartextCredentialTransport","TestBasicAuthRejectsASCIIControls","TestBasicAuthPreservesValidCredentialWireValues"],"fixture_evidence":[],"fuzz_evidence":["FuzzAuthenticationInputs"],"interoperability_evidence":[],"differential_evidence":[],"public_apis":["NewBasicAuth","NewBearerAuth","NewAPIKeyAuth","NewAuthenticationMiddleware"],"documentation":["docs/specification-decisions.md"],"upstream_status":"No unresolved upstream erratum is known for this selected package policy.","reconsider_when":"A pinned source, monitored erratum, maintained peer, or supported Go contract changes this boundary."}`
 
 Additional authorities:
 
@@ -588,6 +591,23 @@ review does not change pinned specifications, decision data, or runtime behavior
   The monitored history-page change does not replace the pinned Recommendation
   or adopt the separately linked Level 2 specification.
 
+## Basic credential admission correction (2026-10-11)
+
+The separate correction to HTTPCLIENT-DEC-004 rejects ASCII CTL
+in both Basic components through both public constructors. The normative
+requirement already appears in RFC 7617 section 2; this does not adopt the
+reported erratum or change the scope to all Unicode control characters.
+The earlier monitoring review remains historical evidence, not proof of
+this behavioral repair.
+
+Executable evidence covers every ASCII CTL byte, generic credential-safe
+errors, valid UTF-8 and printable boundaries, password colons and empty
+passwords. Existing finite admission checks still precede scans and retention.
+`FuzzAuthenticationInputs` independently checks accepted Basic wire values and
+the ASCII CTL boundary, including NUL, CR/LF and DEL regression seeds.
+This corrects previously accepted RFC-invalid input without changing valid
+credential wire forms, public signatures or the existing v2 module path.
+
 ## Unresolved decisions
 
 No known material interpretation for the currently supported HTTP/1.1 and
@@ -596,5 +616,6 @@ scope and is not silently resolved; adoption requires decisions for fallback,
 0-RTT replay, ownership, telemetry, and interoperability. New standards,
 errata, or peer disagreements remain unresolved until they receive a stable
 identifier, source analysis, executable evidence, and maintainer disposition.
-The Basic-auth ASCII-control admission described above remains an open
-implementation-validation boundary, not resolved by this monitoring review.
+The monitoring review recorded Basic-auth ASCII-control admission as an open
+implementation-validation boundary. The separate correction above addresses
+that gap; it was not resolved by the monitoring metadata update.

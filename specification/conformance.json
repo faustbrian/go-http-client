@@ -78,7 +78,9 @@
       "executable_evidence": [
         "TestCredentialEditorsApplyBasicBearerAndAPIKeys",
         "TestAuthenticationMiddlewareReappliesOnlyWithinTrustedOrigin",
-        "TestAuthenticationRejectsCleartextCredentialTransport"
+        "TestAuthenticationRejectsCleartextCredentialTransport",
+        "TestBasicAuthRejectsASCIIControls",
+        "TestBasicAuthPreservesValidCredentialWireValues"
       ],
       "fixtures": [],
       "fuzz": [
@@ -89,7 +91,7 @@
       "differential_evidence": [],
       "differential_classification": "not assessed",
       "public_behavior": [
-        "Use standard Basic and Bearer wire forms and explicit API-key placement only on trusted HTTPS attempts."
+        "Use standard Basic and Bearer wire forms, reject ASCII CTL in both Basic components, and apply explicit API-key placement only on trusted HTTPS attempts."
       ]
     },
     {

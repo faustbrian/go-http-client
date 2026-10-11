@@ -315,7 +315,8 @@ func canonicalOrigin(candidate *url.URL) (string, error) {
 
 // NewBasicAuth returns an immutable HTTP Basic authentication editor. User
 // names containing a colon are rejected because the delimiter would make the
-// credentials ambiguous.
+// credentials ambiguous. Both components must be valid UTF-8 without ASCII
+// control characters, as required by RFC 7617 section 2.
 func NewBasicAuth(username string, password string) (RequestEditor, error) {
 	return NewBasicAuthWithPolicy(username, password, CredentialPolicy{})
 }
@@ -334,11 +335,24 @@ func NewBasicAuthWithPolicy(username string, password string, policy CredentialP
 		return nil, err
 	}
 	if username == "" || strings.ContainsRune(username, ':') ||
-		!utf8.ValidString(username) || !utf8.ValidString(password) {
+		!validBasicCredential(username) || !validBasicCredential(password) {
 		return nil, fmt.Errorf("%w: basic credentials are malformed", ErrInvalidAuthentication)
 	}
 
 	return basicAuthEditor{username: strings.Clone(username), password: strings.Clone(password)}, nil
+}
+
+func validBasicCredential(value string) bool {
+	if !utf8.ValidString(value) {
+		return false
+	}
+	for index := 0; index < len(value); index++ {
+		if value[index] < 0x20 || value[index] == 0x7f {
+			return false
+		}
+	}
+
+	return true
 }
 
 type basicAuthEditor struct {

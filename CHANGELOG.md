@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Reject ASCII control characters in both HTTP Basic credential components,
+  as required by RFC 7617 (HTTPCLIENT-DEC-004). Valid UTF-8, printable
+  characters, password colons,
+  empty passwords and existing finite credential limits remain unchanged.
+
 ## [2.0.2] - 2026-10-10
 
 ### Security

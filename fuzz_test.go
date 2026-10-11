@@ -53,6 +53,9 @@ func FuzzHeaderValidation(fuzz *testing.F) {
 func FuzzAuthenticationInputs(fuzz *testing.F) {
 	fuzz.Add("user", "password", "token-value", "X-API-Key")
 	fuzz.Add("user:name", "secret", "bad token", "bad header")
+	fuzz.Add("user\x00", "password", "token-value", "X-API-Key")
+	fuzz.Add("user", "password\r\n", "token-value", "X-API-Key")
+	fuzz.Add("user", "password\x7f", "token-value", "X-API-Key")
 	fuzz.Fuzz(func(t *testing.T, username string, password string, token string, header string) {
 		if len(username)+len(password)+len(token)+len(header) > 8<<10 {
 			t.Skip()
@@ -61,7 +64,7 @@ func FuzzAuthenticationInputs(fuzz *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, constructor := range []func() (RequestEditor, error){
+		for index, constructor := range []func() (RequestEditor, error){
 			func() (RequestEditor, error) { return NewBasicAuth(username, password) },
 			func() (RequestEditor, error) { return NewBearerAuth(token) },
 			func() (RequestEditor, error) { return NewAPIKeyHeader(header, token) },
@@ -71,6 +74,19 @@ func FuzzAuthenticationInputs(fuzz *testing.F) {
 				clone := request.Clone(request.Context())
 				if editErr := editor.EditRequest(clone); editErr != nil {
 					t.Fatalf("accepted authentication input failed to apply: %v", editErr)
+				}
+				if index == 0 {
+					for _, component := range []string{username, password} {
+						for _, character := range []byte(component) {
+							if character <= 0x1f || character == 0x7f {
+								t.Fatal("Basic authentication accepted an ASCII control")
+							}
+						}
+					}
+					user, pass, ok := clone.BasicAuth()
+					if !ok || user != username || pass != password {
+						t.Fatal("Basic editor changed admitted credential wire values")
+					}
 				}
 			}
 		}
