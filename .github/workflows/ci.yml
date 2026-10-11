@@ -25,10 +25,10 @@ permissions:
 
 jobs:
   ci:
-    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@f173deb9a9b501c85137a00fa9cccd5287f8cc26 # reviewed v2.0.0 source
+    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@e79bb570d242fac90be99a6959e3b45de89279dd # v2.1.0
     with:
-      tooling_sha: f173deb9a9b501c85137a00fa9cccd5287f8cc26
-      source_bootstrap: true
+      tooling_sha: e79bb570d242fac90be99a6959e3b45de89279dd
+      source_bootstrap: false
       public_dependencies: true
       release_dry_run: ${{ (inputs.release_dry_run || false) && !inputs.coverage_diagnostic }}
 
@@ -59,7 +59,7 @@ jobs:
           task_root="$RUNNER_TEMP/http-client-coverage-${{ github.run_id }}-${{ github.run_attempt }}"
           mkdir -p "$task_root/build" "$task_root/mod" "$task_root/tmp" "$task_root/bin" "$task_root/report"
           printf 'TASK_ROOT=%s\nGOCACHE=%s/build\nGOMODCACHE=%s/mod\nGOTMPDIR=%s/tmp\n' "$task_root" "$task_root" "$task_root" "$task_root" >> "$GITHUB_ENV"
-          printf 'requested_producer=%s\ntooling=498ed33c4a228ca14daaf04542f78193c1baa76c\nmode=source-built-development\n' "$PRODUCER_SHA" > "$task_root/report/coverage.txt"
+          printf 'requested_producer=%s\ntooling=e79bb570d242fac90be99a6959e3b45de89279dd\nmode=source-built-development\n' "$PRODUCER_SHA" > "$task_root/report/coverage.txt"
       - name: Reject combined diagnostic and release selectors
         env:
           RELEASE_DRY_RUN: ${{ inputs.release_dry_run }}
@@ -73,13 +73,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: faustbrian/go-library-tools
-          ref: 498ed33c4a228ca14daaf04542f78193c1baa76c
+          ref: e79bb570d242fac90be99a6959e3b45de89279dd
           fetch-depth: 0
           persist-credentials: false
           path: .coverage-tooling
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.27.1'
+          go-version-file: .coverage-producer/.go-version
           cache: false
       - name: Build immutable development verifier
         env:
@@ -87,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git -C .coverage-producer rev-parse HEAD)" = "$PRODUCER_SHA"
-          test "$(git -C .coverage-tooling rev-parse HEAD)" = 498ed33c4a228ca14daaf04542f78193c1baa76c
+          test "$(git -C .coverage-tooling rev-parse HEAD)" = e79bb570d242fac90be99a6959e3b45de89279dd
           printf 'verified_producer=%s\n' "$PRODUCER_SHA" >> "$TASK_ROOT/report/coverage.txt"
           cd .coverage-tooling
           go build -mod=readonly -o "$TASK_ROOT/bin/golib" ./cmd/golib
