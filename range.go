@@ -22,23 +22,32 @@ var (
 // RangeValidator identifies one representation for safe continuation. ETag
 // must be strong. ETag and LastModified are mutually exclusive.
 type RangeValidator struct {
-	ETag         string
+	// ETag is a strong entity tag; empty selects LastModified instead.
+	ETag string
+	// LastModified is the fallback date truncated to whole UTC seconds.
 	LastModified time.Time
 }
 
 // RangeOptions configures an immutable range request clone. Length zero means
 // continue through the end of the representation.
 type RangeOptions struct {
-	Offset    int64
-	Length    int64
+	// Offset is the nonnegative start byte.
+	Offset int64
+	// Length is the requested byte count; zero requests the suffix.
+	Length int64
+	// Validator sets If-Range from a strong ETag or Last-Modified date.
 	Validator RangeValidator
 }
 
 // RangeResponseOptions describes the request a response must satisfy.
 type RangeResponseOptions struct {
-	Offset       int64
-	Length       int64
-	Validator    RangeValidator
+	// Offset is the expected resumed start byte.
+	Offset int64
+	// Length is an optional positive expected range length.
+	Length int64
+	// Validator checks a continuing 206 response; 416 completion does not verify it.
+	Validator RangeValidator
+	// AllowRestart permits a 200 response to replace rather than append partial content.
 	AllowRestart bool
 }
 
@@ -58,16 +67,21 @@ const (
 // RangeMetadata describes parsed representation byte positions. Total is -1
 // when the server did not disclose complete length.
 type RangeMetadata struct {
+	// Start is the inclusive range start, or -1 for an unsatisfied range.
 	Start int64
-	End   int64
+	// End is the inclusive range end, or -1 for an unsatisfied range.
+	End int64
+	// Total is the representation length; -1 denotes unknown in a satisfied range.
 	Total int64
 }
 
 // RangeError reports range protocol failure without rendering validators or
 // response header values.
 type RangeError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.

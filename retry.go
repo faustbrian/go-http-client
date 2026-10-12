@@ -33,13 +33,16 @@ const (
 // RetryClock supplies deterministic time and context-aware waits.
 // Implementations must be safe for concurrent use.
 type RetryClock interface {
+	// Now returns monotonic-compatible observation time; callbacks may call it while holding a mutex.
 	Now() time.Time
+	// Wait waits for a duration or cancellation; it must return when context is canceled.
 	Wait(context.Context, time.Duration) error
 }
 
 // RetryJitter bounds one exponential backoff delay. Implementations must be
 // safe for concurrent use and return a value between zero and the input.
 type RetryJitter interface {
+	// Apply returns a proposed delay; negative or enlarged values fall back to the original delay.
 	Apply(time.Duration) time.Duration
 }
 
@@ -54,17 +57,25 @@ func (function RetryJitterFunc) Apply(delay time.Duration) time.Duration {
 // RetryAttempt describes one completed physical exchange to custom policy.
 // Response and Failure are mutually exclusive.
 type RetryAttempt struct {
-	Request        *http.Request
-	Response       *http.Response
-	Failure        error
-	Attempt        int
+	// Request is a metadata snapshot without a usable Body or GetBody.
+	Request *http.Request
+	// Response is a metadata snapshot without a usable body.
+	Response *http.Response
+	// Failure is the attempt error.
+	Failure error
+	// Attempt is the one-based attempt count.
+	Attempt int
+	// BodyReplayable reports whether another independent body can be opened.
 	BodyReplayable bool
+	// HasIdempotency reports package-applied key proof, not merely a header's presence.
 	HasIdempotency bool
 }
 
 // RetryPolicy classifies completed physical exchanges. It must be safe for
 // concurrent use and must not consume or close response bodies.
 type RetryPolicy interface {
+	// ShouldRetry selects retry eligibility; custom policy does not bypass body replay or
+	// attempt-count checks.
 	ShouldRetry(RetryAttempt) bool
 }
 
@@ -78,31 +89,50 @@ func (function RetryPolicyFunc) ShouldRetry(attempt RetryAttempt) bool {
 
 // RetryOptions configures bounded operation retry middleware.
 type RetryOptions struct {
-	Name            string
-	Layer           MiddlewareLayer
-	Priority        int
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
+	Priority int
+	// MaximumAttempts is required in [2,100], including the initial attempt.
 	MaximumAttempts int
-	MaximumElapsed  time.Duration
+	// MaximumElapsed is checked between exchanges and delays, not a deadline for Next; zero
+	// selects ten seconds.
+	MaximumElapsed time.Duration
 	// Delays selects one explicit delay after each failed attempt. When set,
 	// it must contain MaximumAttempts minus one positive entries and cannot be
 	// combined with BaseDelay or MaximumDelay.
-	Delays                     []time.Duration
-	BaseDelay                  time.Duration
-	MaximumDelay               time.Duration
-	MaximumRetryAfter          time.Duration
+	Delays []time.Duration
+	// BaseDelay starts exponential backoff; zero selects 100 milliseconds.
+	BaseDelay time.Duration
+	// MaximumDelay caps exponential delay; zero selects two seconds.
+	MaximumDelay time.Duration
+	// MaximumRetryAfter caps parsed Retry-After; zero selects 30 seconds.
+	MaximumRetryAfter time.Duration
+	// RetryUnsafeWithIdempotency opts unsafe methods into default policy only with
+	// package-applied key proof.
 	RetryUnsafeWithIdempotency bool
-	Clock                      RetryClock
-	Jitter                     RetryJitter
-	Policy                     RetryPolicy
+	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
+	Clock RetryClock
+	// Jitter is borrowed and applies only to exponential delays.
+	Jitter RetryJitter
+	// Policy is borrowed; nil uses the package's method, status and error policy.
+	Policy RetryPolicy
 }
 
 // RetryExhaustedError reports a bounded retry stop without rendering the
 // transport cause, response headers, or request data.
 type RetryExhaustedError struct {
-	Attempts   int
-	Elapsed    time.Duration
+	// Attempts is the number of completed attempts, including a nonretryable first failure.
+	Attempts int
+	// Elapsed is observed time at termination, not a hard duration bound.
+	Elapsed time.Duration
+	// StatusCode is the last response status, or zero without a response.
 	StatusCode int
-	Cause      error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error without rendering potentially sensitive causes.

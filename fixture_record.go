@@ -21,6 +21,8 @@ var defaultFixtureRedactedQueryParameters = []string{
 
 // FixtureBodyRedactor sanitizes one bounded response body before storage.
 type FixtureBodyRedactor interface {
+	// RedactFixtureBody receives a bounded copy and must return sanitized bytes within the same
+	// body bound.
 	RedactFixtureBody([]byte) ([]byte, error)
 }
 
@@ -32,18 +34,32 @@ func (function FixtureBodyRedactorFunc) RedactFixtureBody(content []byte) ([]byt
 	return function(content)
 }
 
-// RecorderOptions configures bounded sanitized fixture capture.
+// RecorderOptions selects byte-bounded capture and explicit sanitization.
+// Request-body digests are not encryption and can reveal guessable body values.
+// Callers must classify custom header/query names and redactor output.
 type RecorderOptions struct {
-	MatchHeaders            []string
+	// MatchHeaders selects nonsensitive request headers to persist and match.
+	MatchHeaders []string
+	// RedactedQueryParameters adds query names whose values are replaced before persistence.
 	RedactedQueryParameters []string
-	ResponseHeaders         []string
-	ResponseTrailers        []string
-	VolatileHeaders         []string
-	SensitiveHeaders        []string
-	MaximumBodyBytes        int64
-	TTL                     time.Duration
-	Clock                   RetryClock
-	ResponseBodyRedactor    FixtureBodyRedactor
+	// ResponseHeaders selects response fields; empty selects Content-Encoding and Content-Type.
+	ResponseHeaders []string
+	// ResponseTrailers selects response trailers; empty records none.
+	ResponseTrailers []string
+	// VolatileHeaders adds field names omitted from capture.
+	VolatileHeaders []string
+	// SensitiveHeaders adds field names omitted from response capture; built-in sensitive names
+	// are always excluded.
+	SensitiveHeaders []string
+	// MaximumBodyBytes bounds each captured body; zero selects 1 MiB and the maximum is 64 MiB.
+	MaximumBodyBytes int64
+	// TTL sets expiry from recording time; zero means no expiry.
+	TTL time.Duration
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// ResponseBodyRedactor enables response-body persistence only after explicit redaction; nil
+	// omits the captured body.
+	ResponseBodyRedactor FixtureBodyRedactor
 }
 
 // RecorderTransport records sanitized successful exchanges around base.

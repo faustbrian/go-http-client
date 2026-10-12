@@ -1,7 +1,9 @@
 # Transport, Timeouts, Proxies, And Redirects
 
 `New(Config{})` builds a standard `http.Client` with finite policy. The default
-interactive profile bounds the logical operation at 30 seconds. Its owned
+interactive profile sets a 30-second standard `http.Client.Do` timeout, including
+redirects and body reads. It is not an outer deadline for middleware admission or
+retry waits; every inner retry invocation gets the standard-client timeout. Its owned
 `http.Transport` uses a 10-second connect timeout, 30-second TCP keepalive,
 10-second TLS handshake timeout, 15-second response-header timeout, one-second
 expect-continue timeout, 90-second idle timeout, finite connection pools, a

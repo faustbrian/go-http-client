@@ -30,9 +30,13 @@ const (
 
 // PaginationPage is one typed fetch result and its next continuation.
 type PaginationPage[Item any, Continuation any] struct {
-	Items         []Item
-	Next          Continuation
-	HasNext       bool
+	// Items contains page values; copying the slice does not deep-copy each item.
+	Items []Item
+	// Next is the opaque next continuation; generic referenced data is not deep-copied.
+	Next Continuation
+	// HasNext reports whether the vendor explicitly supplies another page.
+	HasNext bool
+	// ResponseBytes is caller-reported response-byte accounting, not a measurement of allocations.
 	ResponseBytes int64
 }
 
@@ -49,44 +53,71 @@ type PaginationContinuationKey[Continuation any] func(Continuation) (string, err
 // PaginationLimits are finite cumulative iterator budgets. Zero fields select
 // production defaults.
 type PaginationLimits struct {
-	MaximumPages             int
-	MaximumItems             int
-	MaximumElapsed           time.Duration
-	MaximumResponseBytes     int64
-	MaximumEmptyPages        int
+	// MaximumPages bounds fetched pages; zero selects 100.
+	MaximumPages int
+	// MaximumItems bounds accepted items; zero selects 10,000.
+	MaximumItems int
+	// MaximumElapsed is checked before and after fetch, not a timer interrupting callbacks; zero
+	// selects five minutes.
+	MaximumElapsed time.Duration
+	// MaximumResponseBytes bounds caller-reported bytes; zero selects 64 MiB.
+	MaximumResponseBytes int64
+	// MaximumEmptyPages bounds consecutive empty pages with a continuation; zero selects three.
+	MaximumEmptyPages int
+	// MaximumContinuationBytes bounds serialized keys after the key callback; zero selects 4 KiB.
 	MaximumContinuationBytes int
 }
 
 // PaginationState is a resumable snapshot including unconsumed typed items and
 // continuation cycle history.
 type PaginationState[Item any, Continuation any] struct {
-	Continuation  Continuation
-	HasNext       bool
-	Done          bool
-	Buffered      []Item
+	// Continuation is the next opaque vendor continuation.
+	Continuation Continuation
+	// HasNext reports whether the vendor explicitly supplies another page.
+	HasNext bool
+	// Done marks local exhaustion.
+	Done bool
+	// Buffered contains a copied slice of accepted items; each item remains shallow.
+	Buffered []Item
+	// BufferedIndex is the next buffered item to return.
 	BufferedIndex int
-	Pages         int
-	Items         int
+	// Pages counts accepted fetched pages.
+	Pages int
+	// Items counts accepted items, including buffered items.
+	Items int
+	// ResponseBytes is caller-reported response-byte accounting, not a measurement of allocations.
 	ResponseBytes int64
-	EmptyPages    int
-	Elapsed       time.Duration
-	Seen          []string
+	// EmptyPages counts consecutive empty continued pages.
+	EmptyPages int
+	// Elapsed records accumulated elapsed accounting.
+	Elapsed time.Duration
+	// Seen contains accepted continuation keys for cycle detection; trusted resume state
+	// supplies these.
+	Seen []string
 }
 
 // PaginationOptions configures one lazy typed iterator.
 type PaginationOptions[Item any, Continuation any] struct {
+	// Initial is the starting continuation for a new iterator.
 	Initial Continuation
-	Fetch   PaginationFetcher[Item, Continuation]
-	Key     PaginationContinuationKey[Continuation]
-	Limits  PaginationLimits
-	Clock   RetryClock
-	Resume  *PaginationState[Item, Continuation]
+	// Fetch is borrowed and must honor context; its returned allocations are not preemptively bounded.
+	Fetch PaginationFetcher[Item, Continuation]
+	// Key is borrowed and supplies deterministic cycle-detection material under the paginator mutex.
+	Key PaginationContinuationKey[Continuation]
+	// Limits selects per-run accounting bounds; zero fields use the helper defaults.
+	Limits PaginationLimits
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// Resume supplies trusted prior state; slice containers are copied, generic values are shallow.
+	Resume *PaginationState[Item, Continuation]
 }
 
 // PaginationError reports a safe failure category without rendering a cursor,
 // vendor response, item, or underlying cause.
 type PaginationError struct {
-	Kind  string
+	// Kind identifies the stable failing pagination boundary.
+	Kind string
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
@@ -99,7 +130,9 @@ func (err *PaginationError) Error() string {
 func (err *PaginationError) Unwrap() error { return err.Cause }
 
 // Paginator lazily yields typed items. It is safe for concurrent calls, which
-// are serialized to preserve input order and continuation ownership.
+// are serialized to preserve input order and continuation ownership. Fetch, Key
+// and Clock execute under the mutex and must not reenter this paginator; waiting
+// for that mutex is not context-interruptible. Item and continuation copies are shallow.
 type Paginator[Item any, Continuation any] struct {
 	mu          sync.Mutex
 	fetch       PaginationFetcher[Item, Continuation]
@@ -210,6 +243,7 @@ func validatePaginationState[Item any, Continuation any](
 
 // Next returns the next item, false at clean exhaustion, or a typed failure.
 func (paginator *Paginator[Item, Continuation]) Next(ctx context.Context) (Item, bool, error) {
+	// Serialize vendor advancement and buffered delivery; borrowed callbacks must not reenter.
 	paginator.mu.Lock()
 	defer paginator.mu.Unlock()
 
@@ -328,7 +362,8 @@ func paginationLimitError(kind string) error {
 	return &PaginationError{Kind: kind, Cause: ErrPaginationLimit}
 }
 
-// State returns an independent resumable snapshot.
+// State copies resume slice containers; referenced item and continuation data
+// remain shallow and must not be concurrently mutated by callers.
 func (paginator *Paginator[Item, Continuation]) State() PaginationState[Item, Continuation] {
 	paginator.mu.Lock()
 	defer paginator.mu.Unlock()

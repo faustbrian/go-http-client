@@ -66,3 +66,12 @@ During execution, operation and attempt middleware can call
 snapshot, including provenance. This keeps logs and metrics inspectable while
 leaving raw credentials, tenants, account identifiers, paths, and queries out
 of policy metadata.
+
+## Implementation boundaries
+
+Body, pool and shutdown values are also recipes: a request override for
+`BodyMaximumBytes` does not automatically configure a decoder, and
+`ShutdownTimeout` does not bound `Client.Close`. The owned transport's connection
+limit is fixed at construction; request overrides do not rebuild that transport.
+`OperationTimeout` is the inner standard-client timeout, including redirects/body
+reads, not a deadline for the whole outer middleware/retry operation.

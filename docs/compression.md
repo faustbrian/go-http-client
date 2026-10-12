@@ -48,8 +48,9 @@ bodies are compressed because their final size cannot be known without
 buffering. A request with an existing `Content-Encoding` is also unchanged.
 
 Compression streams through an owned pipe; it does not buffer the full request.
-Closing the request body closes the source, unblocks the compressor, and waits
-for that worker to exit. A replayable source retains `GetBody`, with a fresh
+Closing the request body closes the source and waits for that worker to exit.
+The source must cooperate by unblocking its outstanding read on close. A
+replayable source retains `GetBody`, with a fresh
 compressor for retries and redirects. A one-shot source remains one-shot, so
 compression never makes a request retryable.
 
@@ -62,3 +63,11 @@ transport compression policy.
 `CompressionError` preserves request-source, gzip, checksum, and close causes
 without rendering them. This prevents payload-bearing decoder errors from
 appearing in ordinary error strings.
+
+## Implementation boundaries
+
+The ratio is an approximate accounting check, beginning after 1 KiB of decoded
+output and including compressed-reader prefetch. Supply a finite value from 1
+through 1,000,000: the current constructor admits NaN, whose comparisons disable
+the ratio check, while the decoded byte limit remains active. Closing a request
+compressor joins its worker; a custom source's `Close` must unblock `Read`.

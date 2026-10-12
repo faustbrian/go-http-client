@@ -22,19 +22,28 @@ var (
 type EgressReason string
 
 const (
-	EgressReasonScheme    EgressReason = "scheme"
-	EgressReasonHost      EgressReason = "host"
-	EgressReasonPort      EgressReason = "port"
-	EgressReasonOrigin    EgressReason = "origin"
-	EgressReasonCIDR      EgressReason = "cidr"
-	EgressReasonAddress   EgressReason = "address-class"
-	EgressReasonMetadata  EgressReason = "metadata-service"
+	// EgressReasonScheme rejects a scheme outside the configured set.
+	EgressReasonScheme EgressReason = "scheme"
+	// EgressReasonHost rejects a host outside the configured set.
+	EgressReasonHost EgressReason = "host"
+	// EgressReasonPort rejects a port outside the configured set.
+	EgressReasonPort EgressReason = "port"
+	// EgressReasonOrigin rejects an origin outside the configured set.
+	EgressReasonOrigin EgressReason = "origin"
+	// EgressReasonCIDR rejects an address under CIDR policy.
+	EgressReasonCIDR EgressReason = "cidr"
+	// EgressReasonAddress rejects a disallowed address class.
+	EgressReasonAddress EgressReason = "address-class"
+	// EgressReasonMetadata rejects a known metadata-service address.
+	EgressReasonMetadata EgressReason = "metadata-service"
+	// EgressReasonMalformed rejects malformed destination or resolver input.
 	EgressReasonMalformed EgressReason = "malformed"
 )
 
 // EgressError reports a destination denial without rendering host, path,
 // query, credentials, or resolved addresses.
 type EgressError struct {
+	// Reason is a stable rejection category, not the denied destination.
 	Reason EgressReason
 }
 
@@ -48,23 +57,39 @@ func (*EgressError) Unwrap() error { return ErrEgressDenied }
 // and port lists default to HTTPS and port 443. Empty host, origin, and CIDR
 // lists allow any value that passes the remaining checks.
 type EgressOptions struct {
-	AllowedSchemes       []string
-	AllowedHosts         []string
-	AllowedPorts         []uint16
-	AllowedOrigins       []string
-	AllowedCIDRs         []string
-	DeniedCIDRs          []string
-	AllowPrivate         bool
-	AllowLoopback        bool
-	AllowLinkLocal       bool
-	AllowMulticast       bool
+	// AllowedSchemes permits http and/or https; empty selects https.
+	AllowedSchemes []string
+	// AllowedHosts restricts exact normalized ASCII hosts; empty adds no host restriction.
+	AllowedHosts []string
+	// AllowedPorts restricts connection ports; empty selects 443.
+	AllowedPorts []uint16
+	// AllowedOrigins restricts normalized origins in addition to host and port rules.
+	AllowedOrigins []string
+	// AllowedCIDRs restricts admitted addresses; empty adds no CIDR allowlist.
+	AllowedCIDRs []string
+	// DeniedCIDRs rejects matching addresses before allowlists and class exceptions.
+	DeniedCIDRs []string
+	// AllowPrivate opts into private addresses except separately guarded metadata addresses.
+	AllowPrivate bool
+	// AllowLoopback opts into loopback addresses.
+	AllowLoopback bool
+	// AllowLinkLocal opts into link-local addresses except separately guarded metadata addresses.
+	AllowLinkLocal bool
+	// AllowMulticast opts into multicast addresses.
+	AllowMulticast bool
+	// AllowMetadataService opts into known metadata addresses after CIDR checks; other
+	// address-class flags are not then required.
 	AllowMetadataService bool
-	Resolver             EgressResolver
+	// Resolver is borrowed; it must honor context and return an unchanging answer slice during
+	// validation.
+	Resolver EgressResolver
 }
 
 // EgressResolver resolves every candidate address before a connection is
 // attempted. Implementations must be safe for concurrent use.
 type EgressResolver interface {
+	// LookupNetIP returns addresses for the requested network and host; every answer is
+	// validated before dialing any.
 	LookupNetIP(context.Context, string, string) ([]netip.Addr, error)
 }
 

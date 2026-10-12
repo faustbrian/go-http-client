@@ -50,9 +50,12 @@ const (
 
 // PoolValue is one successful typed value and its explicit budget accounting.
 type PoolValue[Output any] struct {
-	Value         Output
+	// Value is the executor output; referenced storage remains caller-owned.
+	Value Output
+	// ResponseBytes is caller-reported response-byte accounting, not a measurement of allocations.
 	ResponseBytes int64
-	MemoryBytes   int64
+	// MemoryBytes is caller-reported retained-output accounting, not measured heap use.
+	MemoryBytes int64
 }
 
 // PoolExecutor executes one input through caller-owned HTTP policy.
@@ -69,6 +72,7 @@ type PoolGenerator[Input any] func(context.Context) (Input, bool, error)
 
 // PoolWorkload describes source shape for bounded concurrency selection.
 type PoolWorkload struct {
+	// KnownRequests is the known count or -1 for a lazy/unknown source.
 	KnownRequests int
 }
 
@@ -78,44 +82,70 @@ type PoolConcurrencySelector func(PoolWorkload) int
 
 // PoolLimits are finite run-wide budgets. Zero fields select safe defaults.
 type PoolLimits struct {
-	MaximumRequests      int
-	MaximumElapsed       time.Duration
+	// MaximumRequests bounds scheduled requests; zero selects 10,000.
+	MaximumRequests int
+	// MaximumElapsed cancels the run after the clock wait; noncooperating callbacks can delay
+	// return; zero selects five minutes.
+	MaximumElapsed time.Duration
+	// MaximumResponseBytes bounds accepted caller-reported bytes; zero selects 64 MiB.
 	MaximumResponseBytes int64
-	MaximumMemoryBytes   int64
+	// MaximumMemoryBytes bounds accepted caller-reported memory; zero selects 64 MiB.
+	MaximumMemoryBytes int64
 }
 
 // PoolOptions configures one immutable typed execution pool.
 type PoolOptions[Input any, Output any] struct {
-	Concurrency        int
+	// Concurrency selects fixed worker count; zero selects four.
+	Concurrency int
+	// MinimumConcurrency bounds adaptive selection from below; zero selects one.
 	MinimumConcurrency int
+	// MaximumConcurrency bounds adaptive selection from above; zero selects 32, at most 1,024.
 	MaximumConcurrency int
-	SelectConcurrency  PoolConcurrencySelector
-	Pending            int
-	Order              PoolResultOrder
-	Failure            PoolFailureMode
-	Limits             PoolLimits
-	Clock              RetryClock
-	Key                PoolKey[Input]
-	Execute            PoolExecutor[Input, Output]
+	// SelectConcurrency is a borrowed once-per-run selector; it runs before the run timeout is
+	// installed.
+	SelectConcurrency PoolConcurrencySelector
+	// Pending bounds queued inputs; zero selects fixed concurrency, at most 1,048,576.
+	Pending int
+	// Order selects input order or completion order.
+	Order PoolResultOrder
+	// Failure selects collect-all or fail-fast cancellation.
+	Failure PoolFailureMode
+	// Limits selects per-run accounting bounds; zero fields use the helper defaults.
+	Limits PoolLimits
+	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
+	Clock RetryClock
+	// Key is borrowed and supplies result metadata; it has no context argument and must return promptly.
+	Key PoolKey[Input]
+	// Execute is borrowed; it owns response bodies and must honor context.
+	Execute PoolExecutor[Input, Output]
 }
 
 // PoolResult preserves one source item, typed value, metadata, and independent
 // request failure.
 type PoolResult[Input any, Output any] struct {
-	Index         int
-	Key           string
-	Input         Input
-	Value         Output
+	// Index is the zero-based source position.
+	Index int
+	// Key is caller-supplied metadata, not automatically redacted.
+	Key string
+	// Input is a shallow copy of the source input.
+	Input Input
+	// Value is a shallow copy of the executor result.
+	Value Output
+	// ResponseBytes is caller-reported response-byte accounting, not a measurement of allocations.
 	ResponseBytes int64
-	MemoryBytes   int64
-	Error         error
+	// MemoryBytes is reported retained-output accounting.
+	MemoryBytes int64
+	// Error is the per-request error; collect-all does not promote it to the run error.
+	Error error
 }
 
 // PoolError reports source, cancellation, fail-fast, or budget termination
 // without rendering input, key, response, or underlying error text.
 type PoolError struct {
+	// Completed counts results retained when the run stopped.
 	Completed int
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error without rendering potentially sensitive causes.
@@ -127,7 +157,9 @@ func (err *PoolError) Unwrap() error { return err.Cause }
 // PoolPanicError reports a contained selector, source, key, or executor panic.
 // Value remains available programmatically but is never rendered.
 type PoolPanicError struct {
+	// Stage names source, key, execute or selector invocation.
 	Stage string
+	// Value retains the recovered payload without rendering it; it may be sensitive.
 	Value any
 }
 
@@ -239,7 +271,8 @@ func resolvePoolLimits(limits PoolLimits) (PoolLimits, error) {
 	return limits, nil
 }
 
-// RunSlice executes a finite snapshot of inputs.
+// RunSlice shallow-copies inputs before applying the request-count bound.
+// Callers must bound input allocation and synchronize referenced values.
 func (pool *Pool[Input, Output]) RunSlice(
 	ctx context.Context,
 	inputs []Input,

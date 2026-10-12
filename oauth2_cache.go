@@ -11,20 +11,25 @@ import (
 )
 
 // TokenCacheOptions configures a context-aware cache around a caller-owned
-// OAuth2 token source. Client owns cancellation and lifecycle.
+// OAuth2 token source. Client supplies cancellation but does not join refresh providers.
 type TokenCacheOptions struct {
 	// CredentialPolicy bounds exported token credential fields before cache
 	// admission. Opaque Extra metadata retains source-owned shallow semantics.
 	CredentialPolicy CredentialPolicy
-	Client           *Client
-	Source           ContextTokenSource
-	EarlyExpiry      time.Duration
-	Now              func() time.Time
+	// Client is borrowed for lifecycle cancellation; Close does not join a noncooperating source.
+	Client *Client
+	// Source is borrowed; refresh runs synchronously in one caller, not a background worker.
+	Source ContextTokenSource
+	// EarlyExpiry expires cached tokens early; zero selects ten seconds.
+	EarlyExpiry time.Duration
+	// Now is borrowed and called under the cache mutex; it must not block or reenter.
+	Now func() time.Time
 }
 
 // TokenCacheError reports an upstream refresh failure without rendering its
 // cause, which may contain credentials or provider response data.
 type TokenCacheError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
@@ -99,7 +104,9 @@ func NewCachedTokenSource(options TokenCacheOptions) (*CachedTokenSource, error)
 	}, nil
 }
 
-// Token returns a cached independent token or coordinates one bounded refresh.
+// Token returns a copied token or coordinates one refresh synchronously. Opaque
+// Extra metadata remains shallow. Followers wait cancelably; the source must
+// cooperate with context, and failures are not memoized for later followers.
 func (source *CachedTokenSource) Token(ctx context.Context) (*oauth2.Token, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("%w: token context is nil", ErrInvalidAuthentication)

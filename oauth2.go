@@ -24,6 +24,8 @@ const defaultOAuth2EarlyExpiry = 10 * time.Second
 // ContextTokenSource obtains an OAuth2 token using the request context.
 // Implementations must coordinate concurrent refreshes and honor cancellation.
 type ContextTokenSource interface {
+	// Token acquires a token under caller context; implementations must be concurrent-safe and
+	// bound their own work.
 	Token(context.Context) (*oauth2.Token, error)
 }
 
@@ -42,28 +44,42 @@ func (function ContextTokenSourceFunc) Token(ctx context.Context) (*oauth2.Token
 // OAuth2TokenError reports token acquisition or validation failure without
 // rendering its cause, which may include credentials or endpoint data.
 type OAuth2TokenError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
 // ClientCredentialsOptions configures an outbound OAuth2 client-credentials
 // source. Client supplies the hardened transport and finite total timeout.
 type ClientCredentialsOptions struct {
+	// CredentialPolicy bounds package-owned credential retention, not provider metadata.
 	CredentialPolicy CredentialPolicy
-	Client           *Client
-	TokenURL         string
-	ClientID         string
-	ClientSecret     string
-	Scopes           []string
-	EndpointParams   url.Values
-	AuthStyle        oauth2.AuthStyle
+	// Client is borrowed for transport, timeout and lifecycle cancellation; acquisition bypasses
+	// Client.Do middleware and URL-egress validation.
+	Client *Client
+	// TokenURL is a trusted absolute HTTPS endpoint without userinfo or fragments.
+	TokenURL string
+	// ClientID is copied after aggregate credential admission.
+	ClientID string
+	// ClientSecret is copied after aggregate credential admission; no secure erasure is promised.
+	ClientSecret string
+	// Scopes is copied after aggregate collection admission.
+	Scopes []string
+	// EndpointParams is deep-copied after aggregate collection admission.
+	EndpointParams url.Values
+	// AuthStyle selects upstream OAuth client authentication placement.
+	AuthStyle oauth2.AuthStyle
+	// AllowInsecureURL permits HTTP only for an explicitly trusted local-test endpoint.
 	AllowInsecureURL bool
-	EarlyExpiry      time.Duration
-	Now              func() time.Time
+	// EarlyExpiry expires cached tokens early; zero selects ten seconds.
+	EarlyExpiry time.Duration
+	// Now is borrowed and called under the cache mutex; it must not block or reenter.
+	Now func() time.Time
 }
 
 // ClientCredentialsError reports token endpoint failure without rendering the
 // endpoint, client identity, secret, response, or underlying cause.
 type ClientCredentialsError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
@@ -89,7 +105,8 @@ func (err *OAuth2TokenError) Unwrap() error {
 
 // NewOAuth2Auth adapts a golang.org/x/oauth2 TokenSource to an immutable
 // request editor. The source is wrapped with oauth2.ReuseTokenSource so valid
-// tokens are shared and refresh calls are serialized.
+// tokens are shared and refresh calls are serialized. The upstream TokenSource
+// has no request-context argument; use NewContextOAuth2Auth for context-aware acquisition.
 func NewOAuth2Auth(source oauth2.TokenSource) (RequestEditor, error) {
 	return NewOAuth2AuthWithPolicy(source, CredentialPolicy{})
 }

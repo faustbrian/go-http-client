@@ -30,14 +30,18 @@ const (
 // RateLimiter admits one physical request and can defer future admission.
 // Implementations must be safe for concurrent use.
 type RateLimiter interface {
+	// Acquire reserves capacity and waits under context; cancellation need not refund a reservation.
 	Acquire(context.Context, time.Duration) (time.Duration, error)
+	// DeferUntil extends the shared server-directed admission delay.
 	DeferUntil(time.Time)
+	// Now returns the provider clock time; it must not block or reenter a built-in limiter.
 	Now() time.Time
 }
 
 // RateLimitObserver derives a future admission delay from one response. It
 // must not mutate or consume the response.
 type RateLimitObserver interface {
+	// Delay interprets response fields and returns a server delay; it must be concurrent-safe.
 	Delay(*http.Response, time.Time) (time.Duration, bool, error)
 }
 
@@ -54,19 +58,29 @@ func (function RateLimitObserverFunc) Delay(
 
 // RateLimitOptions configures attempt admission and response observation.
 type RateLimitOptions struct {
-	Name               string
-	Layer              MiddlewareLayer
-	Priority           int
-	Limiter            RateLimiter
-	Observer           RateLimitObserver
-	MaximumWait        time.Duration
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
+	Priority int
+	// Limiter is borrowed and shared at the caller's intended identity scope.
+	Limiter RateLimiter
+	// Observer is borrowed; nil uses Retry-After and errors retain provider causes.
+	Observer RateLimitObserver
+	// MaximumWait bounds an acquisition's scheduled wait; zero selects 30 seconds.
+	MaximumWait time.Duration
+	// MaximumServerDelay clamps observed server delay; zero selects one minute.
 	MaximumServerDelay time.Duration
 }
 
 // RateLimitError reports admission or observation failure without rendering a
 // custom limiter cause or response header value.
 type RateLimitError struct {
-	Wait  time.Duration
+	// Wait is the rejected scheduled wait duration.
+	Wait time.Duration
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
@@ -192,32 +206,45 @@ func acquireRateLimit(ctx context.Context, limiter RateLimiter, maximumWait time
 
 // FixedWindowOptions configures a fixed-window request limiter.
 type FixedWindowOptions struct {
-	Limit  int
+	// Limit is the required positive reservations per window.
+	Limit int
+	// Window is the required positive window duration.
 	Window time.Duration
-	Clock  RetryClock
+	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
+	Clock RetryClock
 }
 
 // SlidingWindowOptions configures an exact sliding-window request limiter.
 type SlidingWindowOptions struct {
-	Limit  int
+	// Limit is the required positive reservations per rolling window.
+	Limit int
+	// Window is the required positive rolling window duration.
 	Window time.Duration
-	Clock  RetryClock
+	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
+	Clock RetryClock
 }
 
 // TokenBucketOptions configures a continuously refilled token bucket. Rate is
 // tokens per second and Burst is the maximum stored token count.
 type TokenBucketOptions struct {
-	Rate  float64
+	// Rate is the required finite positive tokens per second, admitted down to 1e9/MaxInt64.
+	Rate float64
+	// Burst is the required positive capacity; float64 accounting approximates very large integers.
 	Burst int
+	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
 	Clock RetryClock
 }
 
 // LeakyBucketOptions configures constant-rate admission with a bounded queue.
 // Rate is requests per second.
 type LeakyBucketOptions struct {
-	Rate     float64
+	// Rate is the required finite positive admissions per second; intervals are rounded up to
+	// nanoseconds.
+	Rate float64
+	// Capacity is the required positive burst capacity.
 	Capacity int
-	Clock    RetryClock
+	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
+	Clock RetryClock
 }
 
 type rateLimitCore struct {
@@ -570,9 +597,12 @@ const (
 
 // HeaderRateLimitOptions configures vendor remaining/reset observation.
 type HeaderRateLimitOptions struct {
+	// RemainingHeader selects the vendor remaining-count field.
 	RemainingHeader string
-	ResetHeader     string
-	Reset           RateLimitResetMode
+	// ResetHeader selects the vendor reset field.
+	ResetHeader string
+	// Reset selects delta seconds, Unix seconds or HTTP date interpretation.
+	Reset RateLimitResetMode
 }
 
 type headerRateLimitObserver struct {

@@ -22,6 +22,8 @@ var (
 // RequestEditor mutates one independently cloned HTTP request before it is
 // sent. Implementations must be safe for concurrent use.
 type RequestEditor interface {
+	// EditRequest edits caller-provided request metadata; implementations must be safe for
+	// concurrent calls.
 	EditRequest(request *http.Request) error
 }
 
@@ -36,19 +38,29 @@ func (function RequestEditorFunc) EditRequest(request *http.Request) error {
 // RequestEditorError reports an editor failure without rendering its cause,
 // which may contain credential material.
 type RequestEditorError struct {
+	// Editor names the failing editor; caller-chosen names are not redacted.
 	Editor string
-	Cause  error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // AuthenticationOptions configures origin-bound attempt authentication. With
 // no AllowedOrigins, credentials are restricted to the logical operation's
-// initial origin. Additional sensitive headers are stripped whenever a
-// redirect leaves the trusted origin set.
+// initial origin. Compose authentication pairs with consistent origin/header
+// options: their operation state shares one context key. Additional sensitive
+// headers are stripped whenever a redirect leaves the trusted origin set.
 type AuthenticationOptions struct {
-	Name             string
-	Layer            MiddlewareLayer
-	Priority         int
-	AllowedOrigins   []string
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
+	Priority int
+	// AllowedOrigins replaces the default initial-origin set when nonempty; copied at construction.
+	AllowedOrigins []string
+	// SensitiveHeaders adds credential header names to cross-origin stripping; query and body
+	// values are not stripped.
 	SensitiveHeaders []string
 	// AllowInsecure permits credentials on trusted plain-HTTP origins. It is
 	// intended only for local tests.
@@ -81,15 +93,22 @@ type HMACOptions struct {
 	// CredentialPolicy bounds Secret before copying. Vendor callbacks own
 	// canonical bytes, hash resources, and signature placement/output limits.
 	CredentialPolicy CredentialPolicy
-	Secret           []byte
-	NewHash          func() hash.Hash
-	Canonicalize     func(request *http.Request) ([]byte, error)
-	ApplySignature   func(request *http.Request, signature []byte) error
+	// Secret is copied after admission; the package does not promise secure erasure.
+	Secret []byte
+	// NewHash must return a fresh independent hash on every call.
+	NewHash func() hash.Hash
+	// Canonicalize is borrowed; it must be concurrent-safe and bound its own work and output.
+	Canonicalize func(request *http.Request) ([]byte, error)
+	// ApplySignature is borrowed and places the signature; it must preserve the intended trust
+	// boundary.
+	ApplySignature func(request *http.Request, signature []byte) error
 }
 
 // HMACError reports a signing failure without rendering its cause or inputs.
 type HMACError struct {
+	// Phase identifies canonicalization, calculation or signature placement.
 	Phase HMACPhase
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 

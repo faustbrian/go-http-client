@@ -22,9 +22,14 @@ var (
 // policy. Implementations must be safe for concurrent calls when Replayable
 // returns true.
 type RequestBody interface {
+	// Open returns a fresh owned reader when replayable; callers close every successfully opened
+	// reader.
 	Open() (io.ReadCloser, error)
+	// Replayable declares whether repeated Open calls yield equivalent independent streams.
 	Replayable() bool
+	// ContentLength returns bytes, with -1 for unknown length.
 	ContentLength() int64
+	// ContentType returns the field value to install when no explicit Content-Type is set.
 	ContentType() string
 }
 
@@ -35,6 +40,7 @@ type BodyOpener func() (io.ReadCloser, error)
 // message does not include the underlying error, which may contain payload
 // details.
 type BodyOpenError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
@@ -48,7 +54,8 @@ func (err *BodyOpenError) Unwrap() error {
 	return err.Cause
 }
 
-// NewBytesBody snapshots content and returns a replayable request body.
+// NewBytesBody copies content and returns a replayable request body. The caller
+// must bound input size; copying is not subject to a package byte quota.
 func NewBytesBody(contentType string, content []byte) (RequestBody, error) {
 	if err := validateBodyMetadata(contentType, int64(len(content))); err != nil {
 		return nil, err

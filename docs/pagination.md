@@ -148,3 +148,11 @@ Fetchers must close or transfer every response according to the client response
 ownership contract before returning a `PaginationPage`. Pagination owns only
 typed items, continuation state, and declared byte accounting; it never owns an
 `http.Response` body.
+
+## Implementation boundaries
+
+Fetch, key and clock callbacks execute under the paginator mutex and must not
+reenter the iterator. Elapsed limits are checked around fetching, not enforced by
+a timer interrupting callbacks. Item/continuation copies are shallow; resume state
+is trusted application input. Link continuations can change origin, so Fetch must
+apply its own destination and credential trust policy.

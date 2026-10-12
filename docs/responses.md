@@ -14,7 +14,7 @@ The ownership contract is consistent across every exit path:
 | Redirect-intermediate response | The standard `net/http` client closes it; caller owns only the final response. |
 | `DecodeResponse` or `DecodeJSONResponse` | Helper consumes ownership and always closes it. |
 | Rejected `ClassifyResponse` | Helper boundedly drains and closes it; accepted bodies stay caller-owned. |
-| `CopyResponse` and file/resume helpers | Helper consumes ownership and always closes it; destinations remain caller-owned. |
+| `CopyResponse` and file/resume helpers | Ownership transfers after admission; see the precondition and temporary-mode exceptions below. Destinations remain caller-owned. |
 | Request-pool executor | Pool never owns bodies; each executor must finish its direct-operation contract. |
 
 When a caller does not need a returned body, `DrainResponse` boundedly consumes
@@ -152,3 +152,14 @@ configured vendor code, retryability, and the first allowlisted request ID.
 The default request-ID headers are `X-Request-ID` and `X-Correlation-ID`;
 applications can provide an explicit ordered list. Error text contains none of
 those values.
+
+## Implementation boundaries
+
+These ownership transfers begin only after each helper's preconditions are
+accepted. `CopyResponse` retains caller ownership for invalid context, response,
+body or destination; `CopyResponseToFile` also has an existing temporary-mode
+failure path that leaves the body open. Close it on that error. Byte-bounded
+reads/drains are not independently time-bounded against a blocking custom body.
+Decode errors can return partial typed output. Status mapping receives raw cloned
+headers and raw request IDs in addition to an optional redacted excerpt; exported
+fields and unwrapped causes still need application redaction.

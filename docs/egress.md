@@ -86,3 +86,12 @@ Like egress enforcement, `Config.TLS` cannot be combined with a custom
 `RoundTripper`, because the package cannot prove that it preserves the
 configured verification policy. A pin mismatch matches `ErrTLSPinMismatch`
 without rendering certificates, names, or pin material.
+
+## Implementation boundaries
+
+For an HTTP proxy, connection-time checks constrain the proxy connection, not
+the proxy's own DNS resolution or connection to the destination. Destination URL
+admission still applies through `Client.Do`; use a trusted proxy or direct-only
+mode for the intended network boundary. Direct `HTTPClient()` calls and OAuth
+client-credentials acquisition bypass that URL-level wrapper. SPKI matching may
+accept any presented peer certificate after PKI verification, not only the leaf.

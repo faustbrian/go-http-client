@@ -34,21 +34,34 @@ const (
 
 // CompressionOptions configures explicit attempt-scoped response decoding.
 type CompressionOptions struct {
-	Name                     string
-	Layer                    MiddlewareLayer
-	Priority                 int
-	CompressRequests         bool
-	MinimumRequestBytes      int64
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
+	Priority int
+	// CompressRequests opts into streaming gzip for unencoded bodies.
+	CompressRequests bool
+	// MinimumRequestBytes leaves smaller known bodies unchanged; unknown lengths are compressed.
+	MinimumRequestBytes int64
+	// MaximumDecompressedBytes bounds decoded output; zero selects 64 MiB and the maximum is 1 TiB.
 	MaximumDecompressedBytes int64
-	MaximumExpansionRatio    float64
+	// MaximumExpansionRatio selects the approximate ratio after 1 KiB decoded; zero selects 100.
+	// Supply a finite value in [1, 1e6]; NaN is currently admitted and disables the ratio
+	// comparison.
+	MaximumExpansionRatio float64
 }
 
 // CompressionError reports content-decoding failure without rendering the
 // underlying decoder or body error.
 type CompressionError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Encoding  string
-	Cause     error
+	// Encoding names the content coding; it does not include payload bytes.
+	Encoding string
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -67,11 +80,15 @@ func (err *CompressionError) Unwrap() []error {
 	return []error{category, err.Cause}
 }
 
-// DecompressionLimitError reports finite compressed and decoded byte counts.
+// DecompressionLimitError reports observed compressed and decoded byte counts.
 type DecompressionLimitError struct {
-	MaximumBytes      int64
-	MaximumRatio      float64
-	CompressedBytes   int64
+	// MaximumBytes is the configured decoded-output byte bound.
+	MaximumBytes int64
+	// MaximumRatio is the configured expansion ratio.
+	MaximumRatio float64
+	// CompressedBytes counts compressed bytes read, including decoder prefetch.
+	CompressedBytes int64
+	// DecompressedBytes counts decoded bytes observed when the limit was detected.
 	DecompressedBytes int64
 }
 
@@ -108,6 +125,7 @@ func NewCompressionMiddleware(options CompressionOptions) (Middleware, error) {
 	if maximumRatio == 0 {
 		maximumRatio = defaultMaximumExpansionRatio
 	}
+	// NaN bypasses this comparison; callers must provide a finite ratio.
 	if maximumRatio < 1 || maximumRatio > maximumExpansionRatio {
 		return Middleware{}, fmt.Errorf("%w: maximum expansion ratio is invalid", ErrInvalidCompression)
 	}

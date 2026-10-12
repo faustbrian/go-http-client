@@ -11,24 +11,33 @@ import (
 
 // HTTPDoer executes one standard HTTP request.
 type HTTPDoer interface {
+	// Do returns a caller-owned response on success; it must honor request context and close
+	// failed exchanges.
 	Do(*http.Request) (*http.Response, error)
 }
 
 // ResumeFileOptions configures persistent partial-file continuation.
 // PartialPath must be trusted and in the caller-controlled destination directory.
 type ResumeFileOptions struct {
-	PartialPath    string
-	Mode           os.FileMode
-	Validator      RangeValidator
+	// PartialPath selects trusted partial storage; empty appends .partial to the destination.
+	PartialPath string
+	// Mode selects nonzero permission bits; zero selects 0600.
+	Mode os.FileMode
+	// Validator is required for a nonempty partial; it does not authenticate local contents.
+	Validator RangeValidator
+	// DisableRestart rejects a 200 response instead of truncating the old partial.
 	DisableRestart bool
-	Transfer       TransferOptions
+	// Transfer selects byte, digest and progress policy for the complete local representation.
+	Transfer TransferOptions
 }
 
 // ResumeError reports resume state or filesystem failure without rendering
 // paths, validators, headers, or response data.
 type ResumeError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -38,8 +47,11 @@ func (err *ResumeError) Error() string { return "HTTP resume " + err.Operation +
 func (err *ResumeError) Unwrap() error { return err.Cause }
 
 // ResumeDownloadToFile continues a same-directory partial file, validates the
-// complete representation, and atomically publishes destination. Failed range
-// appends roll back to their prior safe offset.
+// complete representation, and publishes via same-directory rename. Failed range
+// appends attempt rollback to the prior offset; rollback errors are joined. An
+// allowed 200 restart truncates old partial bytes without rollback. A 416 checks
+// total length, not the remote validator. A post-rename directory-sync failure
+// means the destination was already replaced. No cross-call file locking is provided.
 // Destination and PartialPath must be trusted caller-selected paths in a
 // caller-controlled directory; this operation provides no symlink confinement.
 func ResumeDownloadToFile(

@@ -66,48 +66,73 @@ const (
 
 // Fixture is one versioned deterministic HTTP interaction sequence.
 type Fixture struct {
-	SchemaVersion int                  `json:"schema_version"`
-	RecordedAt    time.Time            `json:"recorded_at"`
-	ExpiresAt     time.Time            `json:"expires_at,omitempty"`
-	Match         FixtureMatchPolicy   `json:"match"`
-	Interactions  []FixtureInteraction `json:"interactions"`
+	// SchemaVersion must equal FixtureSchemaVersion for direct replay.
+	SchemaVersion int `json:"schema_version"`
+	// RecordedAt is required by persisted fixture loading, but not direct replay construction.
+	RecordedAt time.Time `json:"recorded_at"`
+	// ExpiresAt expires persisted fixtures at or after this time; zero means no expiry.
+	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	// Match records normalized matching and query-redaction policy.
+	Match FixtureMatchPolicy `json:"match"`
+	// Interactions is the ordered sequence, snapshotted by replay construction; at most 100,000
+	// entries.
+	Interactions []FixtureInteraction `json:"interactions"`
 }
 
 // FixtureMatchPolicy persists deterministic sanitized matching behavior.
 type FixtureMatchPolicy struct {
-	Headers                 []string `json:"headers,omitempty"`
+	// Headers selects exact request-header matching; order of values is ignored.
+	Headers []string `json:"headers,omitempty"`
+	// RedactedQueryParameters names query values replaced before matching; such values
+	// intentionally lose identity.
 	RedactedQueryParameters []string `json:"redacted_query_parameters,omitempty"`
 }
 
 // FixtureInteraction pairs one canonical request with one replay response.
 type FixtureInteraction struct {
-	Request  FixtureRequest  `json:"request"`
+	// Request is the canonical request match.
+	Request FixtureRequest `json:"request"`
+	// Response is the returned snapshot or scripted failure.
 	Response FixtureResponse `json:"response"`
 }
 
 // FixtureRequest contains bounded match material.
 type FixtureRequest struct {
-	Method string      `json:"method"`
-	URL    string      `json:"url"`
+	// Method is matched case-sensitively, including extension methods.
+	Method string `json:"method"`
+	// URL is canonicalized with sorted query names and values; fragments and userinfo are rejected.
+	URL string `json:"url"`
+	// Header contains selected nonsensitive match headers.
 	Header http.Header `json:"header,omitempty"`
-	Body   []byte      `json:"body,omitempty"`
+	// Body contains raw match bytes for direct replay; persisted loading rejects raw request bodies.
+	Body []byte `json:"body,omitempty"`
 	// BodySHA256 matches a body without persisting its contents.
 	BodySHA256 string `json:"body_sha256,omitempty"`
 }
 
 // FixtureResponse contains a bounded response snapshot.
 type FixtureResponse struct {
-	StatusCode    int                `json:"status_code,omitempty"`
-	Header        http.Header        `json:"header,omitempty"`
-	Body          []byte             `json:"body,omitempty"`
-	Trailer       http.Header        `json:"trailer,omitempty"`
-	ContentLength *int64             `json:"content_length,omitempty"`
-	Failure       FixtureFailure     `json:"failure,omitempty"`
-	BodyFailure   FixtureBodyFailure `json:"body_failure,omitempty"`
+	// StatusCode is required in [100,599] unless Failure is set.
+	StatusCode int `json:"status_code,omitempty"`
+	// Header is copied into each replay response; known sensitive names are rejected.
+	Header http.Header `json:"header,omitempty"`
+	// Body is copied into an independently readable response body.
+	Body []byte `json:"body,omitempty"`
+	// Trailer is copied into each replay response.
+	Trailer http.Header `json:"trailer,omitempty"`
+	// ContentLength overrides the derived body length when nonnil; -1 denotes unknown.
+	ContentLength *int64 `json:"content_length,omitempty"`
+	// Failure scripts a pre-response error and excludes all response material.
+	Failure FixtureFailure `json:"failure,omitempty"`
+	// BodyFailure optionally returns partial bytes followed by unexpected EOF.
+	BodyFailure FixtureBodyFailure `json:"body_failure,omitempty"`
 }
 
 // FixtureReplayError is a stable secret-safe scripted transport failure.
-type FixtureReplayError struct{ Kind FixtureFailure }
+type FixtureReplayError struct {
+	// Kind selects the scripted stable failure category.
+	Kind FixtureFailure
+}
 
 // Error implements error without rendering request or recorded error data.
 func (*FixtureReplayError) Error() string { return "HTTP fixture replay failed" }
@@ -136,8 +161,10 @@ func (*FixtureReplayError) Temporary() bool { return false }
 
 // FixtureError identifies only the interaction index and stable cause.
 type FixtureError struct {
+	// Interaction is the zero-based failing or first unused interaction index.
 	Interaction int
-	Cause       error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error without rendering request or fixture data.
@@ -148,7 +175,10 @@ func (err *FixtureError) Unwrap() error { return err.Cause }
 
 // ReplayOptions configures deterministic bounded request matching.
 type ReplayOptions struct {
-	MatchHeaders     []string
+	// MatchHeaders must agree with persisted match policy when both are set.
+	MatchHeaders []string
+	// MaximumBodyBytes bounds each request and response body; zero selects 1 MiB and the maximum
+	// is 64 MiB.
 	MaximumBodyBytes int64
 }
 
@@ -219,7 +249,11 @@ func validFixtureInteractionCount(count int) bool {
 	return count <= maximumFixtureInteractions
 }
 
-// RoundTrip returns the next response only when request matches exactly.
+// RoundTrip matches the next ordered interaction after boundedly reading and
+// closing the request body. Canonicalization sorts query/header values and may
+// redact configured query values, so matching is not raw-wire equality. A mismatch
+// does not consume the interaction. Concurrent captures race for ordered admission;
+// scripted failures consume their matched interaction. No real network is used.
 func (replay *ReplayTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	if request == nil {
 		return nil, fixturePersistenceError(ErrFixtureUnmatched)
@@ -233,6 +267,7 @@ func (replay *ReplayTransport) RoundTrip(request *http.Request) (*http.Response,
 	if err != nil {
 		return nil, err
 	}
+	// Capture happens before admission, so the lock orders completed captures, not invocation starts.
 	replay.mu.Lock()
 	defer replay.mu.Unlock()
 	if replay.next >= len(replay.interactions) {

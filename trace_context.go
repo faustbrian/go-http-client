@@ -12,8 +12,10 @@ var ErrInvalidTraceContext = errors.New("invalid W3C trace context")
 
 // W3CTraceContext contains validated Trace Context propagation fields.
 type W3CTraceContext struct {
+	// Traceparent is an admitted version-00 traceparent value.
 	Traceparent string
-	Tracestate  string
+	// Tracestate is an admitted optional value, at most 512 bytes and 32 members.
+	Tracestate string
 }
 
 // WithW3CTraceContext attaches a validated immutable W3C Trace Context v00

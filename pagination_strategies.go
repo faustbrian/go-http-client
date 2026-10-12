@@ -10,8 +10,11 @@ import (
 
 // IndexedPaginationPage is one page for numeric page and offset strategies.
 type IndexedPaginationPage[Item any] struct {
-	Items         []Item
-	HasNext       bool
+	// Items contains page values; copying the slice does not deep-copy each item.
+	Items []Item
+	// HasNext reports whether the vendor explicitly supplies another page.
+	HasNext bool
+	// ResponseBytes is caller-reported response-byte accounting, not a measurement of allocations.
 	ResponseBytes int64
 }
 
@@ -23,11 +26,16 @@ type PageNumberPaginationFetcher[Item any] func(
 
 // PageNumberPaginationOptions configures page-number iteration.
 type PageNumberPaginationOptions[Item any] struct {
+	// InitialPage defaults to one; negative values are rejected.
 	InitialPage int
-	Fetch       PageNumberPaginationFetcher[Item]
-	Limits      PaginationLimits
-	Clock       RetryClock
-	Resume      *PaginationState[Item, int]
+	// Fetch is borrowed and must honor context; its returned allocations are not preemptively bounded.
+	Fetch PageNumberPaginationFetcher[Item]
+	// Limits selects per-run accounting bounds; zero fields use the helper defaults.
+	Limits PaginationLimits
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// Resume supplies trusted prior state; slice containers are copied, generic values are shallow.
+	Resume *PaginationState[Item, int]
 }
 
 // NewPageNumberPaginator creates a lazy page-number iterator.
@@ -78,8 +86,10 @@ func NewPageNumberPaginator[Item any](
 
 // OffsetContinuation is an immutable offset/limit position.
 type OffsetContinuation struct {
+	// Offset is the nonnegative item offset.
 	Offset int
-	Limit  int
+	// Limit is the positive page size.
+	Limit int
 }
 
 // OffsetPaginationFetcher loads one offset/limit position.
@@ -90,12 +100,18 @@ type OffsetPaginationFetcher[Item any] func(
 
 // OffsetPaginationOptions configures offset/limit iteration.
 type OffsetPaginationOptions[Item any] struct {
+	// InitialOffset is the nonnegative starting offset.
 	InitialOffset int
-	Limit         int
-	Fetch         OffsetPaginationFetcher[Item]
-	Limits        PaginationLimits
-	Clock         RetryClock
-	Resume        *PaginationState[Item, OffsetContinuation]
+	// Limit is the required positive page size.
+	Limit int
+	// Fetch is borrowed and must honor context; its returned allocations are not preemptively bounded.
+	Fetch OffsetPaginationFetcher[Item]
+	// Limits selects per-run accounting bounds; zero fields use the helper defaults.
+	Limits PaginationLimits
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// Resume supplies trusted prior state; slice containers are copied, generic values are shallow.
+	Resume *PaginationState[Item, OffsetContinuation]
 }
 
 // NewOffsetPaginator creates a lazy offset/limit iterator.
@@ -146,9 +162,13 @@ func NewOffsetPaginator[Item any](
 
 // CursorPaginationPage is one opaque-cursor fetch result.
 type CursorPaginationPage[Item any] struct {
-	Items         []Item
-	NextCursor    string
-	HasNext       bool
+	// Items contains page values; copying the slice does not deep-copy each item.
+	Items []Item
+	// NextCursor is an opaque cursor; HasNext distinguishes exhaustion from an empty cursor.
+	NextCursor string
+	// HasNext reports whether the vendor explicitly supplies another page.
+	HasNext bool
+	// ResponseBytes is caller-reported response-byte accounting, not a measurement of allocations.
 	ResponseBytes int64
 }
 
@@ -160,11 +180,16 @@ type CursorPaginationFetcher[Item any] func(
 
 // CursorPaginationOptions configures opaque-cursor iteration.
 type CursorPaginationOptions[Item any] struct {
+	// InitialCursor is the starting opaque cursor.
 	InitialCursor string
-	Fetch         CursorPaginationFetcher[Item]
-	Limits        PaginationLimits
-	Clock         RetryClock
-	Resume        *PaginationState[Item, string]
+	// Fetch is borrowed and must honor context; its returned allocations are not preemptively bounded.
+	Fetch CursorPaginationFetcher[Item]
+	// Limits selects per-run accounting bounds; zero fields use the helper defaults.
+	Limits PaginationLimits
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// Resume supplies trusted prior state; slice containers are copied, generic values are shallow.
+	Resume *PaginationState[Item, string]
 }
 
 // NewCursorPaginator creates a lazy opaque-cursor iterator.
@@ -195,8 +220,11 @@ func NewCursorPaginator[Item any](
 
 // LinkPaginationPage is one RFC Link-header fetch result.
 type LinkPaginationPage[Item any] struct {
-	Items         []Item
-	Link          string
+	// Items contains page values; copying the slice does not deep-copy each item.
+	Items []Item
+	// Link is the raw Link field used to resolve a next URL; it is not a trust decision.
+	Link string
+	// ResponseBytes is caller-reported response-byte accounting, not a measurement of allocations.
 	ResponseBytes int64
 }
 
@@ -208,11 +236,17 @@ type LinkPaginationFetcher[Item any] func(
 
 // LinkPaginationOptions configures RFC Link-header iteration.
 type LinkPaginationOptions[Item any] struct {
+	// InitialURL is an absolute HTTP(S) URL; later links may change origin and must be validated
+	// by Fetch.
 	InitialURL string
-	Fetch      LinkPaginationFetcher[Item]
-	Limits     PaginationLimits
-	Clock      RetryClock
-	Resume     *PaginationState[Item, string]
+	// Fetch is borrowed and must honor context; its returned allocations are not preemptively bounded.
+	Fetch LinkPaginationFetcher[Item]
+	// Limits selects per-run accounting bounds; zero fields use the helper defaults.
+	Limits PaginationLimits
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// Resume supplies trusted prior state; slice containers are copied, generic values are shallow.
+	Resume *PaginationState[Item, string]
 }
 
 // NewLinkPaginator creates a lazy RFC Link-header iterator.

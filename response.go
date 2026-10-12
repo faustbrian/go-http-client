@@ -35,10 +35,15 @@ const (
 // DecodeOptions configures bounded response decoding. JSON decoding rejects
 // trailing documents unless AllowTrailingData is explicit.
 type DecodeOptions struct {
-	MaximumBodyBytes   int64
+	// MaximumBodyBytes bounds input bytes including trailing data; zero selects 8 MiB, at most 1 GiB.
+	MaximumBodyBytes int64
+	// ExpectedMediaTypes is the parsed allowlist; empty selects JSON types only for
+	// DecodeJSONResponse.
 	ExpectedMediaTypes []string
-	AllowEmpty         bool
-	AllowTrailingData  bool
+	// AllowEmpty accepts an empty non-semantic representation as the zero value.
+	AllowEmpty bool
+	// AllowTrailingData permits but still drains trailing bytes through the same bound.
+	AllowTrailingData bool
 }
 
 // DecodeFunc decodes one complete typed representation from a bounded response
@@ -47,7 +52,10 @@ type DecodeOptions struct {
 type DecodeFunc[T any] func(io.Reader) (T, error)
 
 // ResponseLimitError reports a finite response bound without response data.
-type ResponseLimitError struct{ Limit int64 }
+type ResponseLimitError struct {
+	// Limit is the configured byte bound.
+	Limit int64
+}
 
 // Error implements error.
 func (*ResponseLimitError) Error() string { return "HTTP response body limit reached" }
@@ -57,8 +65,10 @@ func (*ResponseLimitError) Unwrap() error { return ErrResponseBodyLimit }
 
 // ResponseLengthError reports declared and observed response byte counts.
 type ResponseLengthError struct {
+	// Expected is the declared length in bytes.
 	Expected int64
-	Actual   int64
+	// Actual is the observed length in bytes.
+	Actual int64
 }
 
 // Error implements error without rendering response-derived values.
@@ -74,7 +84,9 @@ func (*ResponseLengthError) Unwrap() error {
 // UnexpectedContentTypeError reports parsed media-type mismatch. The fields
 // contain media types only, never body, URL, query, or credential data.
 type UnexpectedContentTypeError struct {
-	Actual   string
+	// Actual is the parsed media type, not the entire header.
+	Actual string
+	// Expected contains copied admitted media types.
 	Expected []string
 }
 
@@ -88,7 +100,10 @@ func (*UnexpectedContentTypeError) Unwrap() error { return ErrUnexpectedContentT
 
 // ResponseDecodeError reports codec or reader failure without rendering its
 // cause, which may contain response data.
-type ResponseDecodeError struct{ Cause error }
+type ResponseDecodeError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
+}
 
 // Error implements error.
 func (*ResponseDecodeError) Error() string { return "HTTP response decode failed" }
@@ -99,8 +114,10 @@ func (err *ResponseDecodeError) Unwrap() error { return err.Cause }
 // ResponseBodyError reports response body lifecycle failure without rendering
 // the underlying error.
 type ResponseBodyError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -112,7 +129,9 @@ func (err *ResponseBodyError) Error() string {
 func (err *ResponseBodyError) Unwrap() error { return err.Cause }
 
 // DecodeResponse decodes one bounded representation with a caller-selected
-// codec and always closes the response body. ExpectedMediaTypes is required;
+// codec and closes an admitted nonnil body. On error, the returned value may
+// contain partial decoder output; it is not transactionally reset. Input bytes
+// are bounded, not allocations made by a trusted codec. ExpectedMediaTypes is required;
 // status classification remains a separate caller policy.
 func DecodeResponse[T any](
 	response *http.Response,
@@ -194,7 +213,7 @@ func invokeResponseDecoder[T any](decode DecodeFunc[T], reader io.Reader) (value
 	return decode(reader)
 }
 
-// DecodeJSONResponse decodes one bounded JSON document and always closes the
+// DecodeJSONResponse decodes one byte-bounded JSON document and closes the
 // response body. Status classification remains a separate caller policy.
 func DecodeJSONResponse[T any](
 	response *http.Response,

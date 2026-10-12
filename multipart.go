@@ -32,8 +32,10 @@ var (
 // MultipartError reports a multipart operation failure without rendering its
 // underlying error, which may contain request payload details.
 type MultipartError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -51,17 +53,24 @@ func (err *MultipartError) Unwrap() error {
 
 // MultipartOptions configures a deterministic streaming multipart body.
 type MultipartOptions struct {
-	Boundary     string
+	// Boundary is required and fixed across opens for deterministic framing.
+	Boundary string
+	// MaximumBytes bounds the complete encoded body; zero selects 64 MiB and the maximum is 1 TiB.
 	MaximumBytes int64
-	Parts        []MultipartPart
+	// Parts is copied in order; bodies are borrowed and headers are snapshotted.
+	Parts []MultipartPart
 }
 
-// MultipartPart describes one form-data part and its owned request body.
+// MultipartPart describes one form-data part with a borrowed body provider.
 type MultipartPart struct {
-	Name     string
+	// Name is the required form field name, at most 8 KiB without ASCII control bytes.
+	Name string
+	// FileName is optional and at most 8 KiB without ASCII control bytes.
 	FileName string
-	Header   http.Header
-	Body     RequestBody
+	// Header contains copied per-part fields subject to metadata admission.
+	Header http.Header
+	// Body is borrowed; Open transfers each returned reader to the multipart body.
+	Body RequestBody
 }
 
 type multipartPart struct {
@@ -81,7 +90,10 @@ type multipartRequestBody struct {
 	consumed      bool
 }
 
-// NewMultipartBody validates and snapshots a multipart/form-data request body.
+// NewMultipartBody validates framing and snapshots part metadata, not body content.
+// Open calls borrowed part providers under its mutex; providers must not reenter.
+// Closing an opened multipart body closes sources and joins its pipe worker, so
+// each source Close must unblock an outstanding Read. Context cannot force this.
 // A boundary is required so retries produce byte-identical wire content.
 func NewMultipartBody(options MultipartOptions) (RequestBody, error) {
 	maximum, err := validateMultipartOptions(options)

@@ -30,8 +30,10 @@ var (
 // CacheError reports cache storage or body processing failure without
 // rendering backend, key, request, header, or body details.
 type CacheError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error without rendering the cause.
@@ -67,8 +69,10 @@ const (
 // CacheMetadata describes cache handling without changing standard response
 // access. It never contains a URL, cache key, credential, or response body.
 type CacheMetadata struct {
+	// Provenance distinguishes a miss, fresh hit, revalidation or permitted stale reuse.
 	Provenance CacheProvenance
-	Age        time.Duration
+	// Age reports computed current age, not time since this caller received the body.
+	Age time.Duration
 }
 
 type cacheMetadataContextKey struct{}
@@ -120,28 +124,47 @@ func CacheMetadataFromResponse(response *http.Response) (CacheMetadata, bool) {
 // CacheEntry is one complete stored response variant. Store implementations
 // must treat slices, headers, and times as caller-owned values.
 type CacheEntry struct {
-	StatusCode       int
-	Status           string
-	Proto            string
-	ProtoMajor       int
-	ProtoMinor       int
-	Header           http.Header
-	Trailer          http.Header
+	// StatusCode is the stored HTTP status.
+	StatusCode int
+	// Status retains the transport status text; it is not independently sanitized.
+	Status string
+	// Proto is the stored protocol name.
+	Proto string
+	// ProtoMajor is the stored protocol major version.
+	ProtoMajor int
+	// ProtoMinor is the stored protocol minor version.
+	ProtoMinor int
+	// Header contains representation headers; backend implementations must snapshot mutable values.
+	Header http.Header
+	// Trailer contains stored trailers and must not alias a concurrently mutated response.
+	Trailer http.Header
+	// TransferEncoding preserves response transfer metadata.
 	TransferEncoding []string
-	Uncompressed     bool
-	Body             []byte
-	StoredAt         time.Time
-	RequestTime      time.Time
-	ResponseTime     time.Time
-	Vary             []string
-	VariantID        string
+	// Uncompressed preserves the transport's decompression flag.
+	Uncompressed bool
+	// Body contains the complete captured representation; it is not encrypted.
+	Body []byte
+	// StoredAt marks the cache insertion time.
+	StoredAt time.Time
+	// RequestTime marks origin request start for age calculation.
+	RequestTime time.Time
+	// ResponseTime marks response receipt for age calculation.
+	ResponseTime time.Time
+	// Vary contains normalized field names used to select a variant.
+	Vary []string
+	// VariantID is an opaque keyed digest, not an encryption or authentication mechanism.
+	VariantID string
 }
 
 // CacheStore persists complete response variants under opaque primary keys.
 // Implementations must be safe for concurrent use and honor context.
 type CacheStore interface {
+	// Load returns variants for an opaque primary key; implementations own concurrency and
+	// resource bounds.
 	Load(context.Context, string) ([]CacheEntry, error)
+	// Save stores a snapshot for the key and variant; callers may mutate their copy afterward.
 	Save(context.Context, string, CacheEntry) error
+	// Delete removes all variants for the primary key.
 	Delete(context.Context, string) error
 }
 
@@ -150,16 +173,21 @@ type CacheStore interface {
 type CacheKeyFunc func(*http.Request) (string, error)
 
 // CacheRevalidationScheduler owns asynchronous cache revalidation work and
-// supplies its lifecycle context. Implementations must queue tasks rather than
+// supplies its lifecycle context. Client.Close does not stop or join these tasks.
+// Implementations must eventually run or release accepted work and queue tasks rather than
 // execute them inline.
 type CacheRevalidationScheduler interface {
+	// ScheduleCacheRevalidation queues a borrowed task with an application-owned context; do not
+	// invoke it inline.
 	ScheduleCacheRevalidation(func(context.Context)) error
 }
 
 // MemoryCacheOptions configures the finite in-memory reference store.
 type MemoryCacheOptions struct {
+	// MaximumEntries bounds variant count; zero selects 1,000 and the maximum is 1,000,000.
 	MaximumEntries int
-	MaximumBytes   int64
+	// MaximumBytes bounds the sum of body lengths, not total heap use; zero selects 64 MiB.
+	MaximumBytes int64
 }
 
 type memoryCacheItem struct {
@@ -168,7 +196,8 @@ type memoryCacheItem struct {
 	entry   CacheEntry
 }
 
-// MemoryCache is a finite concurrency-safe FIFO cache reference backend.
+// MemoryCache is a concurrency-safe FIFO backend bounded by variant count and
+// body-length accounting. Headers, keys and allocation overhead are not counted.
 type MemoryCache struct {
 	mu             sync.Mutex
 	maximumEntries int
@@ -308,20 +337,39 @@ func (cache *MemoryCache) removeItemLocked(primary string, variant string, remov
 
 // CacheOptions configures RFC-aware operation cache middleware.
 type CacheOptions struct {
-	Name                  string
-	Layer                 MiddlewareLayer
-	Priority              int
-	Namespace             string
-	Shared                bool
-	MaximumBodyBytes      int64
-	TTLOverride           time.Duration
-	Store                 CacheStore
-	Clock                 RetryClock
-	VariantKey            []byte
-	Methods               []string
-	Statuses              []int
-	FailureMode           CacheFailureMode
-	Key                   CacheKeyFunc
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
+	Priority int
+	// Namespace separates representation policy in keys; at most 128 lowercase ASCII bytes.
+	Namespace string
+	// Shared enables shared-cache restrictions, including private response handling.
+	Shared bool
+	// MaximumBodyBytes bounds captured bodies; zero selects 8 MiB. Use a practical positive
+	// limit below MaxInt64.
+	MaximumBodyBytes int64
+	// TTLOverride overrides freshness duration, not no-store or credential isolation.
+	TTLOverride time.Duration
+	// Store is borrowed and must provide concurrent-safe snapshot storage.
+	Store CacheStore
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// VariantKey is copied HMAC key material of at least 32 bytes; empty generates a key for
+	// this middleware.
+	VariantKey []byte
+	// Methods explicitly opts in methods beyond the default GET; copied at construction.
+	Methods []string
+	// Statuses explicitly opts in statuses beyond the default 200; copied at construction.
+	Statuses []int
+	// FailureMode chooses whether backend failures bypass caching or fail the operation.
+	FailureMode CacheFailureMode
+	// Key is borrowed and returns at most 4 KiB of key material; it owns its allocation and work
+	// bounds.
+	Key CacheKeyFunc
+	// RevalidationScheduler is borrowed; the application owns queued task execution and shutdown.
 	RevalidationScheduler CacheRevalidationScheduler
 }
 

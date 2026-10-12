@@ -48,7 +48,9 @@ const (
 // IdempotencyKey is stable for one logical operation. String and GoString
 // redact Value; callers must access Value explicitly when setting a request.
 type IdempotencyKey struct {
-	Value      string
+	// Value is sensitive caller or generated key material; String redacts it.
+	Value string
+	// Provenance identifies generation, header or context admission.
 	Provenance IdempotencyProvenance
 }
 
@@ -65,6 +67,8 @@ func (key IdempotencyKey) GoString() string {
 // IdempotencyAttemptPolicy decides whether an attempt still represents the
 // original operation for key propagation.
 type IdempotencyAttemptPolicy interface {
+	// PreserveKey decides whether an attempt may retain the logical key; it must be
+	// concurrent-safe and must not mutate snapshots.
 	PreserveKey(original *http.Request, attempt *http.Request) bool
 }
 
@@ -81,20 +85,32 @@ func (function IdempotencyAttemptPolicyFunc) PreserveKey(
 
 // IdempotencyOptions configures explicit endpoint idempotency middleware.
 type IdempotencyOptions struct {
-	Name               string
-	Layer              MiddlewareLayer
-	Priority           int
-	Mode               IdempotencyMode
-	Header             string
-	MaximumLength      int
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
+	Priority int
+	// Mode generates missing keys or requires a caller-supplied key.
+	Mode IdempotencyMode
+	// Header selects the endpoint key header; empty selects Idempotency-Key.
+	Header string
+	// MaximumLength bounds key bytes; zero selects 255 and the maximum is 1,024.
+	MaximumLength int
+	// MinimumEntropyBits requires generator-reported entropy; zero selects 128, within [96,512].
 	MinimumEntropyBits int
-	Generator          IdentifierGenerator
-	AttemptPolicy      IdempotencyAttemptPolicy
+	// Generator is borrowed; reported entropy is trusted rather than measured.
+	Generator IdentifierGenerator
+	// AttemptPolicy is borrowed; nil preserves only matching method and canonical origin, not
+	// path or query.
+	AttemptPolicy IdempotencyAttemptPolicy
 }
 
 // IdempotencyError reports key selection or propagation failure without
 // rendering the key, generated candidate, or underlying cause.
 type IdempotencyError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 

@@ -95,11 +95,12 @@ exporter, sampling, and shutdown ownership with `telemetry`.
 
 ## Low-cardinality contract
 
-`TelemetryEvent` never contains a URL, host, path, query, header, body, tenant,
+Package-emitted `TelemetryEvent` values omit URL, host, path, query, header, body, tenant,
 credential, cursor, vendor message, or error text. `OperationID` exists for
 trace and correlation use and must not become a metric label.
 
-`MetricLabels()` is the enforced metric projection. It excludes operation ID,
+`MetricLabels()` is the metric field projection for package-emitted events. It
+excludes operation ID,
 classifies extension methods as `OTHER`, and returns only:
 
 - operation or attempt scope;
@@ -123,3 +124,14 @@ directly without adding a mandatory `log` dependency:
 logger := log.JSON(os.Stdout, nil)
 observer, err := httpclient.NewSlogTelemetryObserver(logger)
 ```
+
+## Implementation boundaries
+
+Package-emitted events use the documented categories. Ad-hoc public events are
+not validated: `MetricLabels` normalizes only the method and excludes operation
+identity; other values retain caller-controlled cardinality. Caller-chosen IDs
+must not encode secrets. Observer/propagator calls are synchronous; panic
+containment does not make blocking callbacks time-bounded. Derived contexts must
+preserve parent cancellation, deadlines and values. Baggage allowlisting bounds
+names, not total bytes or value sensitivity; the correlation header is still set
+on cross-origin attempts.

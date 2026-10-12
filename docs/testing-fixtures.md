@@ -113,3 +113,13 @@ For contract coverage, combine three layers:
 2. `httptest.Server` checks for real framing, trailers, redirects, and
    connection behavior.
 3. Sanitized recordings for representative vendor payload compatibility.
+
+## Implementation boundaries
+
+Matching is canonical rather than raw-wire identity: query/header values are
+sorted and configured query values lose identity through redaction. Replay closes
+the captured request body and consumes matched scripted failures; mismatches do
+not advance. Concurrent callers are admitted in capture-completion order. Body
+SHA-256 digests are neither encryption nor fixture authentication. The recorder's
+interaction-count admission happens after the live exchange, not before its
+network effects.

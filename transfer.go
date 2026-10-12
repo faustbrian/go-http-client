@@ -45,14 +45,22 @@ const (
 )
 
 // TransferClock supplies deterministic progress and elapsed time.
-type TransferClock interface{ Now() time.Time }
+type TransferClock interface {
+	// Now reports progress time and must not block.
+	Now() time.Time
+}
 
 // TransferProgress is an immutable progress snapshot.
 type TransferProgress struct {
-	Bytes    int64
-	Total    int64
-	Elapsed  time.Duration
-	Digest   []byte
+	// Bytes counts bytes written so far.
+	Bytes int64
+	// Total is the expected length, or -1 when unknown.
+	Total int64
+	// Elapsed is observed time since this transfer started.
+	Elapsed time.Duration
+	// Digest is a copied digest prefix state when configured.
+	Digest []byte
+	// Complete marks final integrity success, not durable file publication.
 	Complete bool
 }
 
@@ -62,28 +70,43 @@ type TransferProgressObserver func(context.Context, TransferProgress) error
 
 // TransferOptions configures a bounded response-to-writer transfer.
 type TransferOptions struct {
-	MaximumBytes     int64
-	ExpectedBytes    int64
-	DigestAlgorithm  DigestAlgorithm
-	ExpectedDigest   []byte
-	Progress         TransferProgressObserver
+	// MaximumBytes bounds transferred bytes; zero selects 1 GiB and the maximum is 1 TiB.
+	MaximumBytes int64
+	// ExpectedBytes uses response ContentLength at zero; -1 disables length validation.
+	ExpectedBytes int64
+	// DigestAlgorithm selects SHA-256 or SHA-512; empty disables hashing.
+	DigestAlgorithm DigestAlgorithm
+	// ExpectedDigest is copied and compared after writing; integrity requires a trusted expected
+	// digest.
+	ExpectedDigest []byte
+	// Progress is borrowed and synchronous; context cannot interrupt a blocked observer.
+	Progress TransferProgressObserver
+	// ProgressInterval is the intermediate minimum interval; zero selects 100 milliseconds.
 	ProgressInterval time.Duration
-	ProgressBytes    int64
-	Clock            TransferClock
+	// ProgressBytes is the intermediate minimum increment; both time and bytes must qualify;
+	// zero selects 64 KiB.
+	ProgressBytes int64
+	// Clock is borrowed; only Now is used and it must not block.
+	Clock TransferClock
 }
 
 // TransferResult describes one completed transfer.
 type TransferResult struct {
-	Bytes   int64
+	// Bytes counts bytes already written, including partial writes on failure.
+	Bytes int64
+	// Elapsed is available at completion; early failures may leave it zero.
 	Elapsed time.Duration
-	Digest  []byte
+	// Digest is computed output when available; errors do not roll back destination bytes.
+	Digest []byte
 }
 
 // TransferError reports streaming I/O or observer failure without rendering
 // its cause, which may contain destination or response data.
 type TransferError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -94,8 +117,10 @@ func (err *TransferError) Unwrap() error { return err.Cause }
 
 // TransferLimitError reports the finite byte bound.
 type TransferLimitError struct {
+	// MaximumBytes is the configured bound.
 	MaximumBytes int64
-	Bytes        int64
+	// Bytes is the observed count when the bound was exceeded.
+	Bytes int64
 }
 
 // Error implements error.
@@ -106,8 +131,10 @@ func (*TransferLimitError) Unwrap() error { return ErrTransferLimit }
 
 // TransferLengthError reports expected and observed byte counts.
 type TransferLengthError struct {
+	// Expected is the declared length in bytes.
 	Expected int64
-	Actual   int64
+	// Actual is the observed length in bytes.
+	Actual int64
 }
 
 // Error implements error.
@@ -117,7 +144,10 @@ func (*TransferLengthError) Error() string { return "HTTP transfer length mismat
 func (*TransferLengthError) Unwrap() error { return ErrTransferLength }
 
 // DigestMismatchError reports the algorithm without rendering digest values.
-type DigestMismatchError struct{ Algorithm DigestAlgorithm }
+type DigestMismatchError struct {
+	// Algorithm is the digest selected for comparison.
+	Algorithm DigestAlgorithm
+}
 
 // Error implements error.
 func (*DigestMismatchError) Error() string { return "HTTP transfer digest mismatch" }
@@ -137,8 +167,11 @@ type resolvedTransferOptions struct {
 }
 
 // CopyResponse streams response body into destination, validates configured
-// bounds and digest, and always closes the response body. Destination remains
-// caller-owned and is never closed.
+// byte bounds and digest after validating context, response, body and destination.
+// Precondition failure leaves body ownership with the caller; after admission the
+// body is closed. Destination is borrowed and never closed. Failure may leave
+// partial or complete bytes written, with no rollback. Context is checked between
+// I/O calls and cannot interrupt a custom blocking reader, writer or observer.
 func CopyResponse(
 	ctx context.Context,
 	response *http.Response,

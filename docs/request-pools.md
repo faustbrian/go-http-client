@@ -135,3 +135,10 @@ flattening pages when vendor ordering matters.
 The pool does not own response bodies. `Execute` must apply the same response
 read, decode, drain, and close contract as a direct vendor operation before it
 returns its typed value or error.
+
+## Implementation boundaries
+
+`RunSlice` copies its input slice before rejecting the request count; referenced
+values remain shallow. Byte/memory accounting is checked after executor output
+exists, not before its allocation. Return joins workers and the clock waiter, so
+callbacks ignoring cancellation can delay it beyond `MaximumElapsed`.

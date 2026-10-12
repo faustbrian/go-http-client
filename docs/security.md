@@ -1,16 +1,18 @@
 # Security Model
 
-The secure baseline is finite work and explicit trust. Clients have bounded
-timeouts and header sizes; body, cache, pool, pagination, retry, fixture,
-transfer, and decompression paths require finite limits. Cancellation stops
-waits and body processing.
+The baseline is explicit trust and selected finite accounting limits. Standard
+transport timeouts and header sizes are bounded; helper byte/count limits do not
+measure every allocation or interrupt arbitrary blocking I/O. Cancellation is
+cooperative for borrowed providers, callbacks and stream implementations.
 
 Credentials are attempt-local, HTTPS-only, and same-origin by default. HTTP is
 available only through the explicit local-test `AllowInsecure` option.
 Cross-origin redirects strip authorization, proxy authorization, cookies,
 trace context, baggage, and configured sensitive headers. Query credentials
-are explicit and discouraged. Errors, logs, metrics, and persisted fixtures
-exclude live secret material by default.
+are explicit and discouraged. Package error strings suppress selected sensitive
+data, but exported fields,
+raw status headers, unwrapped causes, custom telemetry and redactor output remain
+application-classified. Persisted body digests can reveal guessable inputs.
 
 Egress filtering is opt-in: use `EgressPolicy` for untrusted or dynamic
 destinations. An unconfigured client performs caller-directed HTTP without

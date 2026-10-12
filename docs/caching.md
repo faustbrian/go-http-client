@@ -123,3 +123,11 @@ breaker call, retry, attempt-stage admission, signing, authentication, or
 network I/O. Operation request policy, including initial limiter admission,
 has already run. Misses and revalidation requests enter the inner policies
 normally; retry remains bounded inside the one coalesced operation.
+
+## Implementation boundaries
+
+The memory byte budget counts body lengths only, excluding headers, keys and
+allocation overhead. Custom stores own their bounds; keyed digests are not
+encryption or protection against guessing low-entropy values. In-flight miss
+entries are not globally capped, so callers must bound simultaneous distinct
+keys. `Client.Close` does not stop application-owned revalidation tasks.

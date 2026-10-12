@@ -28,13 +28,17 @@ const (
 
 // GeneratedIdentifier contains a generated value and its claimed entropy.
 type GeneratedIdentifier struct {
-	Value       string
+	// Value is the generated identifier bytes as a string.
+	Value string
+	// EntropyBits is the provider's claim, not a statistical measurement by the package.
 	EntropyBits int
 }
 
 // IdentifierGenerator creates independent operation or idempotency values.
 // Implementations must be safe for concurrent use and honor cancellation.
 type IdentifierGenerator interface {
+	// Generate returns a context-aware identifier and its declared entropy; implementations must
+	// be concurrent-safe.
 	Generate(context.Context) (GeneratedIdentifier, error)
 }
 
@@ -58,13 +62,16 @@ const (
 
 // OperationIdentity is stable across all physical attempts in one Client.Do.
 type OperationIdentity struct {
-	ID         string
+	// ID is a generated or admitted caller identifier; do not embed sensitive information.
+	ID string
+	// Provenance distinguishes caller identity from generated identity.
 	Provenance OperationIdentityProvenance
 }
 
 // OperationIdentityError reports generation or validation failure without
 // rendering the generated value or underlying cause.
 type OperationIdentityError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 

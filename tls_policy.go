@@ -21,12 +21,19 @@ var (
 // TLSOptions configures immutable TLS trust and peer identity policy. Empty
 // roots use the platform trust store. Zero minimum version selects TLS 1.2.
 type TLSOptions struct {
-	MinimumVersion       uint16
-	RootCertificatesPEM  []byte
-	ServerName           string
+	// MinimumVersion selects TLS 1.2 or 1.3; zero selects 1.2.
+	MinimumVersion uint16
+	// RootCertificatesPEM replaces platform roots when nonempty; input size is caller-bounded.
+	RootCertificatesPEM []byte
+	// ServerName overrides expected server identity; it must be a normalized trusted ASCII host.
+	ServerName string
+	// ClientCertificatePEM is copied and parsed with ClientPrivateKeyPEM.
 	ClientCertificatePEM []byte
-	ClientPrivateKeyPEM  []byte
-	SPKISHA256Pins       [][sha256.Size]byte
+	// ClientPrivateKeyPEM is copied and parsed; secure erasure is not promised.
+	ClientPrivateKeyPEM []byte
+	// SPKISHA256Pins is copied; any presented certificate may match after normal PKI
+	// verification, not only the leaf.
+	SPKISHA256Pins [][sha256.Size]byte
 }
 
 // TLSPolicy is an immutable standard-transport TLS configuration.

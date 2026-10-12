@@ -27,13 +27,21 @@ var (
 type PolicyResource uint8
 
 const (
+	// PolicyResourceTransport selects transport sharing dimensions.
 	PolicyResourceTransport PolicyResource = iota
+	// PolicyResourceCookies selects cookie-jar sharing dimensions.
 	PolicyResourceCookies
+	// PolicyResourceOAuthTokens selects token-cache sharing dimensions.
 	PolicyResourceOAuthTokens
+	// PolicyResourceCache selects representation-cache sharing dimensions.
 	PolicyResourceCache
+	// PolicyResourceCoalescing selects duplicate-request sharing dimensions.
 	PolicyResourceCoalescing
+	// PolicyResourceRateLimiter selects admission-budget sharing dimensions.
 	PolicyResourceRateLimiter
+	// PolicyResourceCircuitBreaker selects dependency-health sharing dimensions.
 	PolicyResourceCircuitBreaker
+	// PolicyResourceMetrics selects metric aggregation dimensions.
 	PolicyResourceMetrics
 	policyResourceCount
 )
@@ -42,12 +50,18 @@ const (
 type ScopeDimension string
 
 const (
-	ScopeOrigin     ScopeDimension = "origin"
-	ScopeHost       ScopeDimension = "host"
-	ScopeEndpoint   ScopeDimension = "endpoint"
+	// ScopeOrigin selects normalized scheme, host and port.
+	ScopeOrigin ScopeDimension = "origin"
+	// ScopeHost selects normalized host.
+	ScopeHost ScopeDimension = "host"
+	// ScopeEndpoint selects an explicit endpoint label.
+	ScopeEndpoint ScopeDimension = "endpoint"
+	// ScopeCredential selects opaque credential identity.
 	ScopeCredential ScopeDimension = "credential"
-	ScopeTenant     ScopeDimension = "tenant"
-	ScopeAccount    ScopeDimension = "account"
+	// ScopeTenant selects explicit tenant identity.
+	ScopeTenant ScopeDimension = "tenant"
+	// ScopeAccount selects explicit account identity.
+	ScopeAccount ScopeDimension = "account"
 )
 
 const customScopePrefix = "custom:"
@@ -55,11 +69,16 @@ const customScopePrefix = "custom:"
 // PolicyScopeOptions supplies identity and caller-defined scope values. Origin
 // and host are always derived from the concrete request URL.
 type PolicyScopeOptions struct {
-	Endpoint   string
+	// Endpoint is an explicit representation/admission boundary label.
+	Endpoint string
+	// Credential is an explicit opaque credential scope; do not use raw secrets as labels.
 	Credential string
-	Tenant     string
-	Account    string
-	Custom     map[string]string
+	// Tenant is an explicit tenant identity.
+	Tenant string
+	// Account is an explicit account identity.
+	Account string
+	// Custom contains copied named scope dimensions, not automatic enforcement configuration.
+	Custom map[string]string
 }
 
 // PolicyScope is an immutable identity scope attached to a request context.

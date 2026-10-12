@@ -15,9 +15,14 @@ import (
 // Trusted callbacks, external acquisition/caches and opaque OAuth Extra data
 // remain caller-owned; this is not a whole-request or transport policy.
 type CredentialPolicy struct {
-	MaximumInputBytes   int
+	// MaximumInputBytes bounds aggregate raw credential bytes; zero selects 64 KiB and the
+	// maximum is 1 MiB.
+	MaximumInputBytes int
+	// MaximumEncodedBytes bounds encoded credential output; zero selects 256 KiB and the maximum
+	// is 4 MiB.
 	MaximumEncodedBytes int
-	MaximumItems        int
+	// MaximumItems bounds admitted collection items; zero selects 256 and the maximum is 4,096.
+	MaximumItems int
 }
 
 func resolveCredentialPolicy(policy CredentialPolicy) (CredentialPolicy, error) {

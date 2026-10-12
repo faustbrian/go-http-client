@@ -61,26 +61,39 @@ const (
 
 // MiddlewareOptions supplies stable resolution metadata.
 type MiddlewareOptions struct {
-	Name     string
-	Scope    MiddlewareScope
-	Layer    MiddlewareLayer
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Scope selects logical-operation or physical-attempt execution.
+	Scope MiddlewareScope
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
 	Priority int
 }
 
 // MiddlewareInfo is an immutable inspection record for resolved middleware.
 type MiddlewareInfo struct {
-	Name     string
-	Scope    MiddlewareScope
-	Layer    MiddlewareLayer
-	Stage    MiddlewareStage
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Scope identifies the resolved execution scope.
+	Scope MiddlewareScope
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Stage identifies request, transport, response, error or completion execution.
+	Stage MiddlewareStage
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
 	Priority int
 }
 
 // PipelineInspection contains resolved operation and attempt plans. Entries in
 // each plan are ordered by stage, priority, layer, and name.
 type PipelineInspection struct {
+	// Operation contains a copied ordered list for logical execution.
 	Operation []MiddlewareInfo
-	Attempt   []MiddlewareInfo
+	// Attempt contains a copied ordered list for physical execution.
+	Attempt []MiddlewareInfo
 }
 
 // Next continues an around-middleware chain with request.
@@ -109,8 +122,10 @@ func (function TransportFunc) RoundTrip(request *http.Request) (*http.Response, 
 // MiddlewarePanicError reports a contained middleware or transport panic. The
 // panic value remains available to the caller but is not rendered.
 type MiddlewarePanicError struct {
+	// Middleware identifies the failing registration.
 	Middleware MiddlewareInfo
-	Value      any
+	// Value retains the recovered panic payload; it may be sensitive.
+	Value any
 }
 
 // Error implements error without rendering the panic value.
@@ -125,15 +140,19 @@ func (err *MiddlewarePanicError) Error() string {
 // MiddlewareExecutionError reports a failure returned by response, error, or
 // completion middleware while preserving its cause.
 type MiddlewareExecutionError struct {
+	// Middleware identifies the failing registration.
 	Middleware MiddlewareInfo
-	Cause      error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // MiddlewareResultError reports an invalid response/error combination without
 // rendering an underlying failure or response-close error.
 type MiddlewareResultError struct {
+	// Reason identifies the invalid result shape.
 	Reason string
-	Cause  error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -270,7 +289,8 @@ func NewPipeline(middleware ...Middleware) (Pipeline, error) {
 	return resolvePipeline(registrations)
 }
 
-// Pipeline is an immutable resolved middleware plan. Its zero value is an
+// Pipeline is an immutable registration plan, not a snapshot of callback closure
+// state. Borrowed callbacks must be concurrent-safe. Its zero value is an
 // empty valid pipeline.
 type Pipeline struct {
 	registrations []Middleware
@@ -767,6 +787,7 @@ func middlewareInformation(middleware []Middleware) []MiddlewareInfo {
 	return information
 }
 
+// String returns a stable stage name, or unknown for an invalid value.
 func (stage MiddlewareStage) String() string {
 	switch stage {
 	case StageRequest:

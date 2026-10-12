@@ -28,6 +28,8 @@ var (
 
 // FixtureMigrator upgrades one explicitly supported raw schema to current.
 type FixtureMigrator interface {
+	// MigrateFixture converts a copied raw document; the trusted callback owns work and
+	// allocation bounds.
 	MigrateFixture(json.RawMessage) (Fixture, error)
 }
 
@@ -41,10 +43,14 @@ func (function FixtureMigratorFunc) MigrateFixture(payload json.RawMessage) (Fix
 
 // FixtureLoadOptions controls bounded compatibility and expiry checks.
 type FixtureLoadOptions struct {
+	// MaximumFileBytes bounds input bytes; zero selects 16 MiB and the maximum is 256 MiB.
 	MaximumFileBytes int64
-	Clock            RetryClock
-	AllowExpired     bool
-	Migrations       map[int]FixtureMigrator
+	// Clock is borrowed; only Now is used and it must not block or reenter.
+	Clock RetryClock
+	// AllowExpired explicitly permits expired fixtures.
+	AllowExpired bool
+	// Migrations maps older schemas to trusted synchronous migrators; it is not copied.
+	Migrations map[int]FixtureMigrator
 }
 
 // WriteFixture writes a deterministic sanitized fixture JSON document.

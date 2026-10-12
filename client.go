@@ -1,5 +1,19 @@
-// Package httpclient provides policy and lifecycle primitives for typed
-// outbound HTTP integrations while preserving the standard net/http API.
+// Package httpclient composes outbound net/http requests with explicit
+// authentication, retry, admission, caching and response-handling policies.
+// New constructs a reusable client with finite standard-transport defaults;
+// it does not install optional policies merely by selecting a profile.
+//
+// Caller-supplied transports, stores, clocks, callbacks and schedulers remain
+// borrowed unless an option transfers a specific cleanup responsibility.
+// Context cancellation is cooperative: it cannot interrupt arbitrary blocking
+// Read, Write, Close or callback implementations. Successful response bodies
+// remain caller-owned and must be closed even after EOF.
+//
+// Trust boundaries are opt-in. Egress policy guards Client.Do URLs and owned
+// transport connections; authentication policies govern credential origins.
+// Direct calls through HTTPClient bypass the Client.Do pipeline and body
+// registry. Error text often suppresses provider data, but exported fields,
+// unwrapped causes and caller-defined telemetry values are not general redaction.
 package httpclient
 
 import (
@@ -58,14 +72,17 @@ const (
 	ProxyDisabled
 )
 
-// Config configures a Client. A zero Config selects finite production-safe
+// Config configures a Client. A zero Config selects finite standard-transport
 // defaults and an internally owned standard transport.
 type Config struct {
 	// Profile selects a named versioned policy. Zero selects interactive/v1.
 	Profile PolicyProfileID
-	// Policy overrides profile values for every operation on this client.
+	// Policy overrides inspectable values; see PolicyValues for which are enforced directly.
 	Policy PolicyOverrides
-	// Timeout bounds the complete HTTP exchange. Zero selects 30 seconds.
+	// Timeout sets the standard client timeout for an HTTP exchange, including body
+	// reads and redirects, per inner Do invocation. It does not deadline outer
+	// middleware, retry waits or blocking providers. Zero uses the resolved profile
+	// timeout (30 seconds for interactive/v1).
 	// When set, it is the legacy client-level operation-timeout override and
 	// takes precedence over Policy.OperationTimeout.
 	Timeout time.Duration
@@ -314,15 +331,19 @@ func sessionJar(session *clientSession) http.CookieJar {
 	return session.jar
 }
 
-// HTTPClient returns the standard client used for requests. Configuration
-// should be completed before the Client is shared between goroutines.
+// HTTPClient returns the live mutable standard client. Configure it before
+// sharing Client between goroutines. Direct calls bypass Client.Do middleware,
+// operation identity, URL-egress validation and managed response-body ownership;
+// an owned transport's connection-time dial policy still applies.
 func (client *Client) HTTPClient() *http.Client {
 	return client.httpClient
 }
 
 // Do executes request through the configured standard client. The returned
 // response body must be closed by the caller. Closing Client also closes every
-// response body still owned by the caller.
+// response body registered through this API. Request metadata is cloned, but
+// its original body reader is shared and may be closed by the transport; do not
+// reuse the same body concurrently.
 func (client *Client) Do(request *http.Request) (*http.Response, error) {
 	return client.do(request, client.pipeline)
 }
@@ -517,7 +538,10 @@ func (client *Client) CloseIdleConnections() {
 }
 
 // Close cancels pending operations, closes active response bodies, and closes
-// idle connections on transports owned by the Client. It is idempotent.
+// idle connections on transports owned by the Client. It is idempotent and
+// returns the same collected errors. It does not join active Do calls or borrowed
+// providers. Body Close, owned jar Close and persistence must return cooperatively;
+// PolicyValues.ShutdownTimeout does not impose a deadline on this operation.
 func (client *Client) Close() error {
 	client.closeOnce.Do(func() {
 		client.mu.Lock()
@@ -530,6 +554,7 @@ func (client *Client) Close() error {
 		}
 		client.mu.Unlock()
 
+		// Close bodies outside the registry lock: managed Close removes itself.
 		var closeErrors []error
 		for _, body := range bodies {
 			if err := body.Close(); err != nil {
@@ -632,9 +657,13 @@ func newTransportDialer(connectTimeout time.Duration) *net.Dialer {
 // TransportError reports a failure before a usable HTTP response was
 // returned. URL contains neither user information, query, nor fragment.
 type TransportError struct {
+	// Method retains the request method.
 	Method string
-	URL    string
-	Cause  error
+	// URL omits userinfo, query and fragment, but retains the path; treat paths as potentially
+	// sensitive.
+	URL string
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error without rendering the cause, which may contain

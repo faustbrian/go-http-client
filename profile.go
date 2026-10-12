@@ -16,9 +16,13 @@ var (
 type PolicyProfileID string
 
 const (
-	PolicyProfileInteractiveV1     PolicyProfileID = "interactive/v1"
-	PolicyProfileBatchV1           PolicyProfileID = "batch/v1"
-	PolicyProfileStreamingV1       PolicyProfileID = "streaming/v1"
+	// PolicyProfileInteractiveV1 selects the interactive recipe with a 30-second operation timeout.
+	PolicyProfileInteractiveV1 PolicyProfileID = "interactive/v1"
+	// PolicyProfileBatchV1 selects the bulk-work recipe.
+	PolicyProfileBatchV1 PolicyProfileID = "batch/v1"
+	// PolicyProfileStreamingV1 selects the long-lived stream recipe.
+	PolicyProfileStreamingV1 PolicyProfileID = "streaming/v1"
+	// PolicyProfileWebhookDeliveryV1 selects the delivery-attempt recipe.
 	PolicyProfileWebhookDeliveryV1 PolicyProfileID = "webhook-delivery/v1"
 	defaultPolicyProfile                           = PolicyProfileInteractiveV1
 	maximumProfileDuration                         = 24 * time.Hour
@@ -29,57 +33,108 @@ const (
 type PolicyField string
 
 const (
-	PolicyFieldOperationTimeout            PolicyField = "operation_timeout"
-	PolicyFieldRetryMaximumAttempts        PolicyField = "retry_maximum_attempts"
-	PolicyFieldRetryMaximumElapsed         PolicyField = "retry_maximum_elapsed"
-	PolicyFieldPoolConcurrency             PolicyField = "pool_concurrency"
-	PolicyFieldPoolMaximumElapsed          PolicyField = "pool_maximum_elapsed"
+	// PolicyFieldOperationTimeout selects provenance for PolicyValues.OperationTimeout.
+	PolicyFieldOperationTimeout PolicyField = "operation_timeout"
+	// PolicyFieldRetryMaximumAttempts selects provenance for PolicyValues.RetryMaximumAttempts.
+	PolicyFieldRetryMaximumAttempts PolicyField = "retry_maximum_attempts"
+	// PolicyFieldRetryMaximumElapsed selects provenance for PolicyValues.RetryMaximumElapsed.
+	PolicyFieldRetryMaximumElapsed PolicyField = "retry_maximum_elapsed"
+	// PolicyFieldPoolConcurrency selects provenance for PolicyValues.PoolConcurrency.
+	PolicyFieldPoolConcurrency PolicyField = "pool_concurrency"
+	// PolicyFieldPoolMaximumElapsed selects provenance for PolicyValues.PoolMaximumElapsed.
+	PolicyFieldPoolMaximumElapsed PolicyField = "pool_maximum_elapsed"
+	// PolicyFieldTransportMaximumConnections selects provenance for
+	// PolicyValues.TransportMaximumConnections.
 	PolicyFieldTransportMaximumConnections PolicyField = "transport_maximum_connections"
-	PolicyFieldLimiterMaximumWait          PolicyField = "limiter_maximum_wait"
-	PolicyFieldBreakerOpenTimeout          PolicyField = "breaker_open_timeout"
-	PolicyFieldCacheMaximumBodyBytes       PolicyField = "cache_maximum_body_bytes"
-	PolicyFieldBodyMaximumBytes            PolicyField = "body_maximum_bytes"
-	PolicyFieldShutdownTimeout             PolicyField = "shutdown_timeout"
+	// PolicyFieldLimiterMaximumWait selects provenance for PolicyValues.LimiterMaximumWait.
+	PolicyFieldLimiterMaximumWait PolicyField = "limiter_maximum_wait"
+	// PolicyFieldBreakerOpenTimeout selects provenance for PolicyValues.BreakerOpenTimeout.
+	PolicyFieldBreakerOpenTimeout PolicyField = "breaker_open_timeout"
+	// PolicyFieldCacheMaximumBodyBytes selects provenance for PolicyValues.CacheMaximumBodyBytes.
+	PolicyFieldCacheMaximumBodyBytes PolicyField = "cache_maximum_body_bytes"
+	// PolicyFieldBodyMaximumBytes selects provenance for PolicyValues.BodyMaximumBytes.
+	PolicyFieldBodyMaximumBytes PolicyField = "body_maximum_bytes"
+	// PolicyFieldShutdownTimeout selects provenance for PolicyValues.ShutdownTimeout.
+	PolicyFieldShutdownTimeout PolicyField = "shutdown_timeout"
 )
 
 // PolicySource identifies the precedence layer that supplied a value.
 type PolicySource string
 
 const (
+	// PolicySourceProfile identifies a named-profile default.
 	PolicySourceProfile PolicySource = "profile"
-	PolicySourceClient  PolicySource = "client"
+	// PolicySourceClient identifies a client-level override.
+	PolicySourceClient PolicySource = "client"
+	// PolicySourceRequest identifies a request-context override.
 	PolicySourceRequest PolicySource = "request"
 )
 
-// PolicyValues contains finite defaults resolved for one logical operation.
+// PolicyValues contains finite values resolved for one logical operation.
+// Only OperationTimeout and the construction-time TransportMaximumConnections
+// are applied directly by Client; other values are explicit helper/provider recipes.
 type PolicyValues struct {
-	OperationTimeout            time.Duration
-	RetryMaximumAttempts        int
-	RetryMaximumElapsed         time.Duration
-	PoolConcurrency             int
-	PoolMaximumElapsed          time.Duration
+	// OperationTimeout sets each inner http.Client.Do timeout, not an outer admission deadline.
+	OperationTimeout time.Duration
+	// RetryMaximumAttempts is a retry recipe; pass it explicitly to RetryOptions.MaximumAttempts.
+	RetryMaximumAttempts int
+	// RetryMaximumElapsed is a retry recipe; pass it explicitly to RetryOptions.MaximumElapsed.
+	RetryMaximumElapsed time.Duration
+	// PoolConcurrency is a pool recipe; pass it explicitly to PoolOptions.Concurrency.
+	PoolConcurrency int
+	// PoolMaximumElapsed is a pool recipe; pass it explicitly to PoolLimits.MaximumElapsed.
+	PoolMaximumElapsed time.Duration
+	// TransportMaximumConnections sets the owned transport connection limit at construction, not
+	// per request.
 	TransportMaximumConnections int
-	LimiterMaximumWait          time.Duration
-	BreakerOpenTimeout          time.Duration
-	CacheMaximumBodyBytes       int64
-	BodyMaximumBytes            int64
-	ShutdownTimeout             time.Duration
+	// LimiterMaximumWait is a limiter recipe; pass it explicitly to RateLimitOptions.MaximumWait.
+	LimiterMaximumWait time.Duration
+	// BreakerOpenTimeout is a breaker-provider recipe; Client does not enforce it.
+	BreakerOpenTimeout time.Duration
+	// CacheMaximumBodyBytes is a cache recipe; pass it explicitly to CacheOptions.MaximumBodyBytes.
+	CacheMaximumBodyBytes int64
+	// BodyMaximumBytes is a body-helper recipe; Client does not cap all response bodies.
+	BodyMaximumBytes int64
+	// ShutdownTimeout is an inspectable shutdown recipe, not a Client.Close deadline.
+	ShutdownTimeout time.Duration
 }
 
 // PolicyOverrides uses pointers so an explicit value is distinguishable from
 // an omitted field. Every supplied value must be positive and bounded.
 type PolicyOverrides struct {
-	OperationTimeout            *time.Duration
-	RetryMaximumAttempts        *int
-	RetryMaximumElapsed         *time.Duration
-	PoolConcurrency             *int
-	PoolMaximumElapsed          *time.Duration
+	// OperationTimeout overrides OperationTimeout when nonnil; see PolicyValues for enforcement
+	// versus recipe semantics.
+	OperationTimeout *time.Duration
+	// RetryMaximumAttempts overrides RetryMaximumAttempts when nonnil; see PolicyValues for
+	// enforcement versus recipe semantics.
+	RetryMaximumAttempts *int
+	// RetryMaximumElapsed overrides RetryMaximumElapsed when nonnil; see PolicyValues for
+	// enforcement versus recipe semantics.
+	RetryMaximumElapsed *time.Duration
+	// PoolConcurrency overrides PoolConcurrency when nonnil; see PolicyValues for enforcement
+	// versus recipe semantics.
+	PoolConcurrency *int
+	// PoolMaximumElapsed overrides PoolMaximumElapsed when nonnil; see PolicyValues for
+	// enforcement versus recipe semantics.
+	PoolMaximumElapsed *time.Duration
+	// TransportMaximumConnections overrides TransportMaximumConnections when nonnil; see
+	// PolicyValues for enforcement versus recipe semantics.
 	TransportMaximumConnections *int
-	LimiterMaximumWait          *time.Duration
-	BreakerOpenTimeout          *time.Duration
-	CacheMaximumBodyBytes       *int64
-	BodyMaximumBytes            *int64
-	ShutdownTimeout             *time.Duration
+	// LimiterMaximumWait overrides LimiterMaximumWait when nonnil; see PolicyValues for
+	// enforcement versus recipe semantics.
+	LimiterMaximumWait *time.Duration
+	// BreakerOpenTimeout overrides BreakerOpenTimeout when nonnil; see PolicyValues for
+	// enforcement versus recipe semantics.
+	BreakerOpenTimeout *time.Duration
+	// CacheMaximumBodyBytes overrides CacheMaximumBodyBytes when nonnil; see PolicyValues for
+	// enforcement versus recipe semantics.
+	CacheMaximumBodyBytes *int64
+	// BodyMaximumBytes overrides BodyMaximumBytes when nonnil; see PolicyValues for enforcement
+	// versus recipe semantics.
+	BodyMaximumBytes *int64
+	// ShutdownTimeout overrides ShutdownTimeout when nonnil; see PolicyValues for enforcement
+	// versus recipe semantics.
+	ShutdownTimeout *time.Duration
 }
 
 // ResolvedPolicy is an immutable policy and provenance snapshot.

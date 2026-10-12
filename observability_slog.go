@@ -6,8 +6,9 @@ import (
 	"log/slog"
 )
 
-// SlogTelemetryObserver emits safe fixed telemetry fields without URLs,
-// headers, bodies, identity scope values, or error text.
+// SlogTelemetryObserver emits fixed telemetry field names without URLs,
+// headers, bodies, identity scope values, or error text. Public event values,
+// including caller-supplied operation IDs, must be classified by the caller.
 type SlogTelemetryObserver struct{ logger *slog.Logger }
 
 // NewSlogTelemetryObserver adapts a standard-library structured logger.
@@ -25,6 +26,7 @@ func (observer *SlogTelemetryObserver) Begin(ctx context.Context, event Telemetr
 }
 
 // Start logs one operation or attempt start and preserves ctx.
+//
 // Deprecated: use Begin.
 func (observer *SlogTelemetryObserver) Start(ctx context.Context, event TelemetryEvent) context.Context {
 	return observer.Begin(ctx, event)

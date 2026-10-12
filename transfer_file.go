@@ -12,15 +12,19 @@ import (
 
 // FileTransferOptions configures atomic response-to-file replacement.
 type FileTransferOptions struct {
-	Mode     os.FileMode
+	// Mode selects nonzero permission bits; zero selects 0600.
+	Mode os.FileMode
+	// Transfer selects stream accounting and integrity policy.
 	Transfer TransferOptions
 }
 
 // FileTransferError reports filesystem failure without rendering paths or
 // underlying errors.
 type FileTransferError struct {
+	// Operation identifies the failed helper phase without rendering the underlying cause.
 	Operation string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -35,6 +39,9 @@ func (err *FileTransferError) Unwrap() error { return err.Cause }
 // destination only after transfer validation, file sync, and close succeed.
 // The caller must select a trusted destination in a caller-controlled directory;
 // this operation does not confine attacker-selected paths or symlink changes.
+// A directory-sync error after rename reports failure after replacement. Invalid
+// context/body preconditions retain caller body ownership. The existing temporary
+// Chmod failure path also leaves the body open; callers must close it on that error.
 func CopyResponseToFile(
 	ctx context.Context,
 	response *http.Response,

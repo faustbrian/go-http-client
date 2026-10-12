@@ -19,12 +19,15 @@ var (
 
 // DrainOptions configures bounded response draining for connection reuse.
 type DrainOptions struct {
+	// MaximumBytes bounds discarded bytes plus a one-byte probe; zero selects 64 KiB, at most 16 MiB.
 	MaximumBytes int64
 }
 
 // ResponseDrainLimitError reports that draining exceeded its finite bound.
 type ResponseDrainLimitError struct {
-	Limit   int64
+	// Limit is the configured discard bound.
+	Limit int64
+	// Drained is the observed byte count, including the overflow probe.
 	Drained int64
 }
 
@@ -38,8 +41,10 @@ func (*ResponseDrainLimitError) Unwrap() error {
 	return ErrResponseDrainLimit
 }
 
-// DrainResponse boundedly consumes and always closes response.Body. Reaching
+// DrainResponse limits discarded bytes and closes an admitted response body.
 // EOF permits connection reuse; exceeding the bound returns a typed error.
+// It has no independent time bound: a blocking Read or Close must be interrupted
+// by the underlying body implementation or its request context.
 func DrainResponse(response *http.Response, options DrainOptions) (resultErr error) {
 	if response == nil || response.Body == nil {
 		return fmt.Errorf("%w: response or body is nil", ErrInvalidResponsePolicy)

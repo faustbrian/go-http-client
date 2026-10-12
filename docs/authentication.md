@@ -187,7 +187,7 @@ The token source has these lifecycle rules:
 
 - one caller refreshes while concurrent callers wait on bounded shared state;
 - every waiting caller can stop independently through its context;
-- closing `Client` stops refreshes and rejects cached tokens;
+- closing `Client` signals refresh cancellation and rejects cached tokens;
 - every caller receives an independent token struct and credential strings;
   opaque Extra metadata remains shallowly shared with its upstream owner;
 - token endpoint calls reuse the client's transport and finite timeout;
@@ -315,3 +315,14 @@ Configuration failures match `ErrInvalidAuthentication`. Runtime editor
 failures use `RequestEditorError`, and HMAC callback failures use `HMACError`.
 Both retain causes for `errors.Is` and `errors.As`, but rendered messages omit
 the cause because it may contain a token, secret, canonical request, or query.
+
+## Implementation boundaries
+
+Closing the client signals refresh cancellation but does not join a provider
+that ignores context. The traditional `oauth2.TokenSource` has no request-context
+argument; use the context-aware adapter when acquisition must honor that context.
+`Now` callbacks run under token-cache locks and must not block or reenter.
+Client-credentials acquisition bypasses `Client.Do` URL-egress checks as well as
+middleware and cookies; its initial endpoint is validated and the underlying
+transport's dial/TLS policy still applies. Compose authentication pairs with
+consistent origin/header options because their operation state shares one key.

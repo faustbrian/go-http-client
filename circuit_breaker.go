@@ -21,6 +21,8 @@ const circuitBreakerMiddlewarePriority = -600
 // CircuitBreaker executes one complete logical HTTP operation. Implementations
 // own admission, half-open probes, state, and outcome accounting.
 type CircuitBreaker interface {
+	// Execute owns admission and invokes the callback under provider policy; it must honor
+	// cancellation.
 	Execute(
 		context.Context,
 		func(context.Context) (*http.Response, error),
@@ -43,15 +45,21 @@ func (function CircuitBreakerFunc) Execute(
 
 // CircuitBreakerOptions configures logical-operation breaker middleware.
 type CircuitBreakerOptions struct {
-	Name     string
-	Layer    MiddlewareLayer
+	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
+	Name string
+	// Layer selects registration precedence; higher layers replace the same name, scope and stage.
+	Layer MiddlewareLayer
+	// Priority orders the registration within its stage; zero selects the helper default where
+	// provided.
 	Priority int
-	Breaker  CircuitBreaker
+	// Breaker is borrowed; its owner controls shutdown and callback behavior.
+	Breaker CircuitBreaker
 }
 
 // CircuitBreakerError reports fail-fast rejection without rendering breaker
 // names, state details, retry timestamps, or underlying causes.
 type CircuitBreakerError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
@@ -117,12 +125,14 @@ const (
 // CircuitOutcomeClassifier classifies one complete logical HTTP operation. It
 // must not retain, mutate, consume, or close the response.
 type CircuitOutcomeClassifier interface {
+	// Classify selects accounting for the completed exchange, before caller body consumption.
 	Classify(*http.Response, error) CircuitOutcome
 }
 
 // ContextCircuitOutcomeClassifier can distinguish caller cancellation from a
 // dependency that independently returns a cancellation-shaped error.
 type ContextCircuitOutcomeClassifier interface {
+	// ClassifyContext selects accounting using the actual execution context.
 	ClassifyContext(context.Context, *http.Response, error) CircuitOutcome
 }
 

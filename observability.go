@@ -69,32 +69,49 @@ const (
 	TelemetryCacheStale TelemetryCacheOutcome = "stale"
 )
 
-// TelemetryEvent contains fixed bounded fields. It never contains URLs,
+// TelemetryEvent contains fixed fields. Package-emitted events omit URLs,
 // headers, bodies, credentials, tenant identifiers, cursors, or error text.
 type TelemetryEvent struct {
-	Phase       TelemetryPhase
-	Scope       TelemetryScope
-	Attempt     int
+	// Phase identifies start or finish of the exchange scope.
+	Phase TelemetryPhase
+	// Scope identifies logical operation or physical attempt.
+	Scope TelemetryScope
+	// Attempt is the one-based physical count; operations do not supply an attempt count.
+	Attempt int
+	// OperationID is correlation data excluded from MetricLabels; caller IDs remain caller-classified.
 	OperationID string
-	Method      string
-	Profile     PolicyProfileID
-	Outcome     TelemetryOutcome
+	// Method is normalized for package-emitted events.
+	Method string
+	// Profile is the resolved policy profile identifier.
+	Profile PolicyProfileID
+	// Outcome is the exchange outcome, not later body consumption success.
+	Outcome TelemetryOutcome
+	// StatusClass is a coarse response class, not the raw status code.
 	StatusClass string
-	Cache       TelemetryCacheOutcome
+	// Cache is the cache provenance category.
+	Cache TelemetryCacheOutcome
 }
 
-// TelemetryMetricLabels is a closed low-cardinality projection. It excludes
-// operation identity and any raw request, response, or error data.
+// TelemetryMetricLabels is the field projection for package-emitted categories.
+// It excludes operation identity; public ad-hoc values are not validated.
 type TelemetryMetricLabels struct {
-	Scope       TelemetryScope
-	Method      string
-	Profile     PolicyProfileID
-	Outcome     TelemetryOutcome
+	// Scope is the exchange scope.
+	Scope TelemetryScope
+	// Method is normalized by MetricLabels to a standard verb or OTHER.
+	Method string
+	// Profile retains the supplied event profile; ad-hoc events are not validated.
+	Profile PolicyProfileID
+	// Outcome retains the supplied event outcome.
+	Outcome TelemetryOutcome
+	// StatusClass retains the supplied event class.
 	StatusClass string
-	Cache       TelemetryCacheOutcome
+	// Cache retains the supplied event cache category.
+	Cache TelemetryCacheOutcome
 }
 
-// MetricLabels returns fields safe for use as bounded metric labels.
+// MetricLabels excludes operation identity and normalizes Method. Other public
+// event fields are projected as supplied; callers creating events must bound
+// their cardinality and prevent sensitive values themselves.
 func (event TelemetryEvent) MetricLabels() TelemetryMetricLabels {
 	return TelemetryMetricLabels{
 		Scope: event.Scope, Method: telemetryMethod(event.Method),
@@ -106,7 +123,10 @@ func (event TelemetryEvent) MetricLabels() TelemetryMetricLabels {
 // TelemetryObserver creates derived trace contexts and receives completions.
 // Implementations must be safe for concurrent use.
 type TelemetryObserver interface {
+	// Start runs synchronously; returned context must preserve parent cancellation, deadlines
+	// and values.
 	Start(context.Context, TelemetryEvent) context.Context
+	// Finish runs synchronously before caller body consumption; it must not block.
 	Finish(context.Context, TelemetryEvent)
 }
 
@@ -114,13 +134,17 @@ type TelemetryObserver interface {
 // completions using the ecosystem observation vocabulary. Implementations must
 // be safe for concurrent use.
 type BeginTelemetryObserver interface {
+	// Begin runs synchronously; returned context must preserve parent cancellation, deadlines
+	// and values.
 	Begin(context.Context, TelemetryEvent) context.Context
+	// Finish runs synchronously before caller body consumption; it must not block.
 	Finish(context.Context, TelemetryEvent)
 }
 
 // TelemetryPropagator injects trace context into a cloned physical-attempt
 // header. Implementations must be safe for concurrent use.
 type TelemetryPropagator interface {
+	// Inject mutates owned nonnil headers synchronously; it must be concurrent-safe and nonblocking.
 	Inject(context.Context, http.Header)
 }
 
@@ -128,12 +152,20 @@ type TelemetryPropagator interface {
 // trust-boundary header handling. Observer and BeginObserver are mutually
 // exclusive. Literal nil interfaces are omitted; typed-nil values are invalid.
 type TelemetryOptions struct {
-	Observer          TelemetryObserver
-	BeginObserver     BeginTelemetryObserver
-	Propagator        TelemetryPropagator
+	// Observer is the borrowed legacy observer; use BeginObserver for new adapters.
+	Observer TelemetryObserver
+	// BeginObserver is the borrowed Begin/Finish observer; setting Observer too is invalid.
+	BeginObserver BeginTelemetryObserver
+	// Propagator is borrowed and injects only on trusted-origin attempts.
+	Propagator TelemetryPropagator
+	// CorrelationHeader sets operation identity on attempts, including cross-origin attempts;
+	// empty selects X-Request-ID.
 	CorrelationHeader string
-	BaggageAllowlist  []string
-	SensitiveHeaders  []string
+	// BaggageAllowlist copies allowed member names; values and total baggage bytes are not
+	// bounded or sanitized.
+	BaggageAllowlist []string
+	// SensitiveHeaders adds names stripped when telemetry observes an origin change.
+	SensitiveHeaders []string
 }
 
 type telemetryPolicy struct {

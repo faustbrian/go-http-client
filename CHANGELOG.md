@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Clarify HTTP policy recipes, cooperative cancellation and provider ownership,
+  response privacy and partial transfer/publication boundaries. Record the
+  existing fragment-admission and NaN compression-ratio limitations without
+  changing request execution or the selected protocol policy.
+
 ## [2.0.3] - 2026-10-11
 
 ### Fixed

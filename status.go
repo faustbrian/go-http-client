@@ -20,43 +20,64 @@ const (
 	maximumStatusDrainBytes        = 16 << 20
 )
 
-// StatusSnapshot supplies bounded redacted response state to vendor mapping.
+// StatusSnapshot supplies raw cloned headers and request ID, plus an optional
+// bounded redacted body excerpt. It is not a fully sanitized response snapshot.
 type StatusSnapshot struct {
+	// StatusCode is the rejected response status.
 	StatusCode int
-	Header     http.Header
-	Excerpt    []byte
-	RequestID  string
+	// Header is a clone of raw response headers, not a redacted or independently bounded collection.
+	Header http.Header
+	// Excerpt is the optional bounded redacted body prefix.
+	Excerpt []byte
+	// RequestID is the first selected raw field value, not sanitized by the package.
+	RequestID string
 }
 
 // ExcerptRedactor returns an independent safe excerpt. It must not retain its
 // input, which can contain sensitive response data.
 type ExcerptRedactor func([]byte) ([]byte, error)
 
-// VendorErrorMapper maps safe bounded response state to a stable vendor code
-// and optional cause.
+// VendorErrorMapper maps response state to a stable vendor code. Only Excerpt
+// has passed the redactor; raw headers and request ID require caller policy. The
+// returned cause remains available without being rendered.
 type VendorErrorMapper func(StatusSnapshot) (string, error)
 
 // StatusOptions configures independent status classification.
 type StatusOptions struct {
-	Accept              func(int) bool
+	// Accept is borrowed; nil accepts 2xx without consuming the body.
+	Accept func(int) bool
+	// MaximumExcerptBytes opts into capture only with a redactor; at most 1 MiB.
 	MaximumExcerptBytes int64
-	MaximumDrainBytes   int64
-	RedactExcerpt       ExcerptRedactor
-	Retryable           func(int, http.Header) bool
-	MapVendorError      VendorErrorMapper
-	RequestIDHeaders    []string
+	// MaximumDrainBytes bounds additional discarded bytes; zero selects 64 KiB, at most 16 MiB.
+	MaximumDrainBytes int64
+	// RedactExcerpt is borrowed and must return sanitized bytes within the excerpt bound.
+	RedactExcerpt ExcerptRedactor
+	// Retryable is borrowed and classifies status with cloned raw headers.
+	Retryable func(int, http.Header) bool
+	// MapVendorError is borrowed; it receives the excerpt plus raw headers and request ID.
+	MapVendorError VendorErrorMapper
+	// RequestIDHeaders is copied in priority order; empty selects X-Request-ID and X-Correlation-ID.
+	RequestIDHeaders []string
 }
 
-// HTTPStatusError preserves safe structured response state. Error text never
+// HTTPStatusError preserves structured response state, including raw headers
+// and request ID. Callers must classify exported values before use. Error text never
 // renders headers, excerpts, vendor messages, request IDs, or causes.
 type HTTPStatusError struct {
+	// StatusCode is the rejected status.
 	StatusCode int
-	Header     http.Header
+	// Header contains cloned raw headers; callers must redact before logging or exporting.
+	Header http.Header
+	// VendorCode is mapper-defined metadata, not independently sanitized.
 	VendorCode string
-	Excerpt    []byte
-	RequestID  string
-	Retryable  bool
-	Cause      error
+	// Excerpt contains only the opted-in bounded redactor output.
+	Excerpt []byte
+	// RequestID is the selected raw identifier, not independently sanitized.
+	RequestID string
+	// Retryable is the configured classifier result.
+	Retryable bool
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.

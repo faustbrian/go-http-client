@@ -21,7 +21,8 @@ result, err := httpclient.CopyResponse(
 )
 ```
 
-The helper takes ownership of `response.Body` and always closes it. The
+After validating context, response, body and writer, the helper takes ownership
+of `response.Body` and closes it. Invalid preconditions leave it caller-owned. The
 destination remains caller-owned and is never closed. A successful result
 reports transferred bytes, elapsed time, and an independent digest snapshot.
 
@@ -139,8 +140,17 @@ destination directory. A nonempty partial requires a strong ETag or
 `Last-Modified` validator. A validated 206 appends; a 200 truncates and restarts
 unless `DisableRestart` is set; a matching 416 validates the existing partial.
 
-An append failure or whole-file validation failure truncates back to the prior
-safe offset. Successful continuation re-reads the complete partial under the
+An append failure or whole-file validation failure attempts truncation back to
+the prior offset; rollback errors are retained. Successful continuation re-reads the complete partial under the
 same length and digest bounds before syncing and atomically publishing it.
 Offset-aware progress reports the existing byte count and the final validated
 whole-file digest. Restart responses use normal transfer progress from zero.
+
+## Implementation boundaries
+
+Context is polled between I/O calls and cannot interrupt custom blocking readers,
+writers or progress callbacks. A failed copy can leave bytes already written.
+A failed directory sync after rename means the destination was already replaced.
+Resume append failures attempt rollback, which may also fail; an allowed 200
+restart truncates prior partial bytes without rollback. A 416 completion checks
+length, not the remote validator, and concurrent resume calls are not file-locked.

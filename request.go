@@ -85,14 +85,19 @@ const (
 // QueryPart is one structurally encoded custom query field. HasValue false
 // emits a bare field name and ignores Value.
 type QueryPart struct {
-	Name     string
-	Value    string
+	// Name is an unescaped nonempty UTF-8 query name.
+	Name string
+	// Value is the unescaped UTF-8 value when HasValue is true.
+	Value string
+	// HasValue distinguishes a value, including empty, from a bare name.
 	HasValue bool
 }
 
 // QueryEncoder serializes one named custom query value into structured parts.
 // Implementations must be deterministic and safe for concurrent use.
 type QueryEncoder interface {
+	// EncodeQuery returns ordered unescaped parts; the borrowed implementation owns concurrency
+	// and resource bounds.
 	EncodeQuery(name string) ([]QueryPart, error)
 }
 
@@ -107,8 +112,10 @@ func (function QueryEncoderFunc) EncodeQuery(name string) ([]QueryPart, error) {
 // QueryEncodingError reports a custom encoder failure without exposing query
 // values in the rendered error.
 type QueryEncodingError struct {
+	// Parameter is the failing caller-supplied name; it is not redacted.
 	Parameter string
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // Error implements error.
@@ -235,7 +242,11 @@ type queryInstruction struct {
 
 // NewRequestSpec parses baseURL and resolves reference using RFC 3986 URL
 // resolution. The base must be an absolute HTTP(S) URL without user
-// information. The reference must not select another scheme or authority.
+// information. Every absolute and network-path reference is rejected, including
+// one naming the same origin. Matching uses case-insensitive scheme and raw Host,
+// not default-port normalization. Fragments are currently accepted and retained
+// by Build despite the desired fragment-free policy; callers needing that
+// restriction must reject fragments before construction. Input size is caller-bounded.
 func NewRequestSpec(baseURL string, reference string) (RequestSpec, error) {
 	base, err := url.Parse(baseURL)
 	if err != nil || !validBaseURL(base) {

@@ -52,7 +52,10 @@ const (
 // SessionPersistence stores and restores one configured cookie jar. Methods
 // must honor context cancellation and be safe for concurrent callers.
 type SessionPersistence interface {
+	// Load restores into the borrowed jar under a timeout context; it must cooperate with
+	// cancellation.
 	Load(context.Context, http.CookieJar) error
+	// Save snapshots the borrowed jar under a timeout context; it must cooperate with cancellation.
 	Save(context.Context, http.CookieJar) error
 }
 
@@ -80,25 +83,38 @@ func (operation SessionPersistenceOperation) String() string {
 
 // SessionConfig opts a client into isolated cookie and persistence behavior.
 type SessionConfig struct {
-	Jar                http.CookieJar
-	JarOwnership       CookieJarOwnership
-	PublicSuffixList   cookiejar.PublicSuffixList
-	RedirectPolicy     CookieRedirectPolicy
-	Persistence        SessionPersistence
-	LoadOnStart        bool
-	SaveOnClose        bool
+	// Jar is borrowed by default; nil constructs an owned standard jar.
+	Jar http.CookieJar
+	// JarOwnership controls closing a custom jar implementing Close.
+	JarOwnership CookieJarOwnership
+	// PublicSuffixList is borrowed by a constructed jar; nil uses the pinned public-suffix
+	// implementation.
+	PublicSuffixList cookiejar.PublicSuffixList
+	// RedirectPolicy selects same-origin stripping or jar-governed cross-origin cookies.
+	RedirectPolicy CookieRedirectPolicy
+	// Persistence is borrowed; it owns encoding, storage safety and cooperative cancellation.
+	Persistence SessionPersistence
+	// LoadOnStart runs persistence synchronously during construction.
+	LoadOnStart bool
+	// SaveOnClose runs persistence synchronously at Close; a timeout context cannot interrupt a
+	// blocking provider.
+	SaveOnClose bool
+	// PersistenceTimeout bounds the supplied persistence context; zero selects five seconds.
 	PersistenceTimeout time.Duration
 }
 
 // SessionPersistenceError reports a load or save failure without rendering
 // its cause, which may contain cookie values or storage identifiers.
 type SessionPersistenceError struct {
+	// Operation identifies load or save.
 	Operation SessionPersistenceOperation
-	Cause     error
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
+	Cause error
 }
 
 // SessionCloseError reports an owned jar close failure without rendering it.
 type SessionCloseError struct {
+	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
 	Cause error
 }
 
