@@ -1,5 +1,7 @@
 # HTTP client specification decisions
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 This register records observable choices made by `http-client` where HTTP and
 related standards permit multiple behaviors or where the package deliberately
 adds a stricter application policy. Normative sources control over examples,
@@ -637,3 +639,6 @@ identifier, source analysis, executable evidence, and maintainer disposition.
 The monitoring review recorded Basic-auth ASCII-control admission as an open
 implementation-validation boundary. The separate correction above addresses
 that gap; it was not resolved by the monitoring metadata update.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

@@ -1,5 +1,7 @@
 # Authentication Cookbook
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Authentication is expressed as immutable `RequestEditor` values around normal
 `*http.Request` objects. Editors are safe for reuse and do not introduce a
 global credential registry.
@@ -326,3 +328,6 @@ Client-credentials acquisition bypasses `Client.Do` URL-egress checks as well as
 middleware and cookies; its initial endpoint is validated and the underlying
 transport's dial/TLS policy still applies. Compose authentication pairs with
 consistent origin/header options because their operation state shares one key.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

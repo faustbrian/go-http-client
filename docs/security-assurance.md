@@ -1,5 +1,7 @@
 # Security assurance
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 This document records the package's hostile-network threat model, policy
 matrix, and resolved findings. It is not a claim that arbitrary caller callbacks, custom
 transports, or downstream vendor code are safe without their own review.
@@ -160,3 +162,6 @@ vendor-specific policy choices, environment-specific proxy/root configuration,
 and workload tuning. Fuzz runs are bounded smoke evidence rather than a proof
 over every input, and benchmark values are comparative only; neither weakens
 the finite runtime policies enforced by the package.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

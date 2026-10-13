@@ -1,5 +1,7 @@
 # Logical Operation Identity and Idempotency
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Logical operation identity and provider idempotency are related but different.
 Every `Client.Do` and `Client.DoWithMiddleware` receives an operation ID. An
 idempotency key exists only when an endpoint explicitly registers idempotency
@@ -148,3 +150,6 @@ still require all of the following:
 
 Direct calls through `Client.HTTPClient().Do` bypass operation identity and
 idempotency middleware. Use `Client.Do` for the complete policy lifecycle.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

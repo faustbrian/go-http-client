@@ -1,5 +1,7 @@
 # Middleware Lifecycle
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 The middleware pipeline is an immutable, inspectable policy plan around
 ordinary `*http.Request` and `*http.Response` values. There is no package-global
 registry and no implicit `init` registration.
@@ -185,3 +187,6 @@ causes and panic values that may contain request or payload data.
 client pipeline. Use `MiddlewareOneShot` for invocation-local policy. The same
 name, scope, stage, and layer cannot be registered twice; use a higher layer to
 replace client or endpoint policy deliberately.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

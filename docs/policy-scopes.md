@@ -1,5 +1,7 @@
 # Policy Scopes
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Shared policy state needs a stable identity boundary that is independent of
 URLs and raw telemetry labels. `PolicyScope` snapshots endpoint, credential,
 tenant, account, and caller-defined values on a request context:
@@ -59,3 +61,6 @@ stage, after an operation cache has selected its key. A client that combines
 such authentication with caching must attach a stable credential, tenant, or
 account scope to the original request context. This makes the identity
 boundary explicit without storing or rendering the credential itself.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

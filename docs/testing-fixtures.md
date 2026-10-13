@@ -1,5 +1,7 @@
 # Sanitized HTTP test fixtures
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 The fixture transports support deterministic vendor contract tests without
 persisting live credentials or depending on a live service. Replay is strict
 and ordered: each request must match the next interaction, and `Verify` fails
@@ -123,3 +125,6 @@ not advance. Concurrent callers are admitted in capture-completion order. Body
 SHA-256 digests are neither encryption nor fixture authentication. The recorder's
 interaction-count admission happens after the live exchange, not before its
 network effects.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

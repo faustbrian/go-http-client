@@ -1,5 +1,7 @@
 # FAQ And Troubleshooting
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 ## Why was my request not retried?
 
 Retry is endpoint policy, not a default. Confirm method safety, replayable body,
@@ -53,3 +55,6 @@ local-test escape hatch, not a production transport policy.
 It preserves ordinary HTTP composition but intentionally does not provide an
 untyped fluent `Get`/`Post` product. Put typed methods, models, and vendor errors
 in a concrete vendor package.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

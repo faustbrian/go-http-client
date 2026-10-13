@@ -1,5 +1,7 @@
 # Policy Profiles
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Policy profiles give workloads named, versioned, finite defaults without
 hiding the value selected for an operation. The built-in identifiers are:
 
@@ -75,3 +77,6 @@ Body, pool and shutdown values are also recipes: a request override for
 limit is fixed at construction; request overrides do not rebuild that transport.
 `OperationTimeout` is the inner standard-client timeout, including redirects/body
 reads, not a deadline for the whole outer middleware/retry operation.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

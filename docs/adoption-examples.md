@@ -1,5 +1,7 @@
 # Adoption Examples
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 The repository includes compiling examples for two materially different vendor
 styles:
 
@@ -32,3 +34,6 @@ For generated clients, prefer a doer seam that the vendor wrapper can route
 through `Client.Do`, ensure only one retry layer is active, and keep generated
 DTOs behind typed public methods. Injecting `Client.HTTPClient()` uses only its
 standard transport, timeout, and jar; it bypasses all middleware policy.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

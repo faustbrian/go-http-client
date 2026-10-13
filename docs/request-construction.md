@@ -1,5 +1,7 @@
 # Request Construction And Serialization
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 `RequestSpec` is an immutable reusable description that produces ordinary
 `*http.Request` values. It does not wrap or replace the standard request after
 construction.
@@ -176,3 +178,6 @@ change its specification, a derived specification, or another built request.
 The caller owns every successfully returned request body and response body.
 Closing the top-level `Client` also closes response bodies still registered with
 that client; request bodies continue to follow the standard transport contract.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

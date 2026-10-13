@@ -1,5 +1,7 @@
 # Error Classification
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Use `errors.Is` for stable categories and `errors.As` for structured metadata.
 Rendered messages are intentionally sparse because URLs, decoder causes,
 vendor messages, and transport failures can contain secrets.
@@ -39,3 +41,6 @@ case errors.Is(err, httpclient.ErrRetryExhausted):
 
 Vendor mappers receive only a bounded redacted snapshot. Keep vendor codes
 low-cardinality and never promote raw messages to errors, logs, or metrics.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

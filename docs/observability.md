@@ -1,5 +1,7 @@
 # Operations, Attempts, Tracing, And Metrics
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Observability is optional. `Client` emits no logs, spans, metrics, correlation
 headers, or propagation headers unless `Config.Telemetry` is configured.
 
@@ -135,3 +137,6 @@ containment does not make blocking callbacks time-bounded. Derived contexts must
 preserve parent cancellation, deadlines and values. Baggage allowlisting bounds
 names, not total bytes or value sensitivity; the correlation header is still set
 on cross-origin attempts.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

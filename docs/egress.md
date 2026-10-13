@@ -1,5 +1,7 @@
 # Egress Security
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Destination policy is explicit. Construct an immutable `EgressPolicy` and
 attach it to a client that uses the package-owned standard transport:
 
@@ -95,3 +97,6 @@ admission still applies through `Client.Do`; use a trusted proxy or direct-only
 mode for the intended network boundary. Direct `HTTPClient()` calls and OAuth
 client-credentials acquisition bypass that URL-level wrapper. SPKI matching may
 accept any presented peer certificate after PKI verification, not only the leaf.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

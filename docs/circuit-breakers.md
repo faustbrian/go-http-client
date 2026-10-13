@@ -1,5 +1,7 @@
 # Circuit-Breaker Composition
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Circuit breaking protects one logical dependency operation. It must not become
 a second retry loop or a second breaker state machine inside this module.
 
@@ -102,3 +104,6 @@ Rejected operations do not reach the attempt pipeline or network. A hostile
 custom breaker that returns a response with a rejection has that body closed
 before the typed error is returned. Ordinary operation failures remain their
 original typed errors and final successful responses remain caller-owned.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

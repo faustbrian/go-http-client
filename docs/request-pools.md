@@ -1,5 +1,7 @@
 # Bounded Request Pools
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Request pools provide bounded in-process fan-out over caller-owned HTTP
 operations. They do not replace `http.Transport` connection pooling and do not
 construct vendor requests or decode vendor responses.
@@ -142,3 +144,6 @@ returns its typed value or error.
 values remain shallow. Byte/memory accounting is checked after executor output
 exists, not before its allocation. Return joins workers and the clock waiter, so
 callbacks ignoring cancellation can delay it beyond `MaximumElapsed`.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

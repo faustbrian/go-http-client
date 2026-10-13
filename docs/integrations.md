@@ -1,5 +1,7 @@
 # Typed Vendor Integration Patterns
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Vendor packages own DTOs, endpoint names, codecs, and business errors. This
 module supplies ordinary `http.Client` policy, request decorators, bounded
 response handling, and test transports. Generated models never enter the core
@@ -77,3 +79,6 @@ bulkhead entry, deterministic telemetry ordering, and caller-owned successful
 response bodies. The application-owned vendor wrapper conservatively maps an
 unsafe POST transport failure to an explicit single-attempt unknown outcome;
 local admission failures remain distinct, and neither path is replayed.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

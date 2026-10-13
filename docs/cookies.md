@@ -1,5 +1,7 @@
 # Cookies and Isolated Sessions
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Cookie state is opt-in. A zero `Config` leaves `http.Client.Jar` nil, so clients
 never acquire ambient package-global or process-global session state.
 
@@ -118,3 +120,6 @@ Persistence failures use `SessionPersistenceError` with a closed load/save
 operation enum. Owned-jar close failures use `SessionCloseError`. Both unwrap
 their causes for `errors.Is` and `errors.As` while omitting causes from rendered
 messages because storage errors can contain cookie values or identifiers.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

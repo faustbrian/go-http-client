@@ -1,5 +1,7 @@
 # Streaming Transfers
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 `CopyResponse` streams a response body into a caller-provided writer without
 buffering the complete representation:
 
@@ -154,3 +156,6 @@ A failed directory sync after rename means the destination was already replaced.
 Resume append failures attempt rollback, which may also fail; an allowed 200
 restart truncates prior partial bytes without rollback. A 416 completion checks
 length, not the remote validator, and concurrent resume calls are not file-locked.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

@@ -1,5 +1,7 @@
 # Public API Reference
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Every exported identifier is documented at its declaration and is available
 through standard Go documentation:
 
@@ -31,3 +33,6 @@ Sentinel errors are compatibility contracts and are documented beside their
 typed error families. Prefer `errors.Is` and `errors.As`; message text is not an
 API. Each area links from the README to its behavioral guide, which defines
 ordering, bounds, ownership, and security semantics beyond type signatures.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

@@ -1,5 +1,7 @@
 # Testing Integrations
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Use deterministic seams for clocks, jitter, identifiers, continuation keys,
 transports, and fixture migration. Avoid real sleeps and public network calls.
 
@@ -28,3 +30,6 @@ vulnerability scanning; and `GO-SAFETY-1`. The root `TestMain` applies
 `goleak` to every root-package test exit without broad ignore rules. For
 fixture construction, recording, persistence, migration, and hostile-input
 rules, see `testing-fixtures.md`.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

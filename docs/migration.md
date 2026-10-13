@@ -1,5 +1,7 @@
 # Migration Guide
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 ## Root v2 import identity
 
 For root `v2.0.0`, select
@@ -66,3 +68,6 @@ Persisted fixture schemas never migrate implicitly. Register an explicit
 `FixtureMigrator` for each understood source version, sanitize its output, and
 rewrite it using the current recorder format. Expiry remains enforced after
 migration.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

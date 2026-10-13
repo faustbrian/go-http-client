@@ -1,5 +1,7 @@
 # Compatibility Policy
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 The root `v2.0.0` release uses the `/v2` module and import suffix for finite
 credential admission and new option fields. Historical v1 releases remain
 available on their original module and import path. The v1 API baseline is
@@ -35,3 +37,6 @@ this observable compatibility contract. A changed interpretation of HTTP,
 authentication, caching, Web Linking, cookies, JSON, OAuth2, or Trace Context
 requires compatibility review even when the previous behavior was not exposed
 as a distinct Go identifier.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

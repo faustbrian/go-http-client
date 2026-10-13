@@ -1,5 +1,7 @@
 # Response Lifecycle And Decoding
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Callers own successful response bodies returned by `Client.Do` and must close
 them. `Client.Close` is a final safety net for bodies still active at client
 shutdown; it is not a replacement for closing each response promptly.
@@ -163,3 +165,6 @@ reads/drains are not independently time-bounded against a blocking custom body.
 Decode errors can return partial typed output. Status mapping receives raw cloned
 headers and raw request IDs in addition to an optional redacted excerpt; exported
 fields and unwrapped causes still need application redaction.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

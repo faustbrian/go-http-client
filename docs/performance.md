@@ -1,5 +1,7 @@
 # Performance
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Reuse clients, transports, immutable request specifications, middleware
 pipelines, and scoped state. Constructing a transport per call defeats
 connection reuse and increases DNS, TCP, and TLS work. Pool concurrency should
@@ -32,3 +34,6 @@ bounds, redaction, or cancellation.
 Cache coalescing, pagination, and request pools reduce duplicate or serialized
 work only within their semantic bounds. They must not multiply retry loops,
 background refresh tasks, or unbounded pending requests.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

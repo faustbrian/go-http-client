@@ -1,5 +1,7 @@
 # Retry Safety and Backoff
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Retry is disabled by default. Register `NewRetryMiddleware` only for endpoints
 whose duplicate-request contract is understood. The middleware runs once per
 logical operation and invokes the complete physical-attempt pipeline for every
@@ -105,3 +107,6 @@ signatures without regenerating logical identity.
 Do not nest provider SDK retries, generated-client retries, and this middleware.
 Choose one retry owner so maximum attempts cannot multiply. Direct calls to
 `Client.HTTPClient().Do` bypass this policy.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

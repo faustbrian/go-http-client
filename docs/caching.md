@@ -1,5 +1,7 @@
 # HTTP Caching
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Caching is optional operation middleware. It preserves `http.Request` and
 `http.Response`, never installs a global backend, and stores only complete
 bounded response bodies.
@@ -131,3 +133,6 @@ allocation overhead. Custom stores own their bounds; keyed digests are not
 encryption or protection against guessing low-entropy values. In-flight miss
 entries are not globally capped, so callers must bound simultaneous distinct
 keys. `Client.Close` does not stop application-owned revalidation tasks.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

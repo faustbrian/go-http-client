@@ -1,5 +1,7 @@
 # Security Model
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 The baseline is explicit trust and selected finite accounting limits. Standard
 transport timeouts and header sizes are bounded; helper byte/count limits do not
 measure every allocation or interrupt arbitrary blocking I/O. Cancellation is
@@ -41,3 +43,6 @@ vulnerabilities privately according to the repository `SECURITY.md`.
 
 The maintained threat model, policy matrix, findings, evidence, and release
 findings are in [security assurance](security-assurance.md).
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

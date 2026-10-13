@@ -1,5 +1,7 @@
 # Compression
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 The default transport disables `net/http` implicit compression. This keeps
 compressed input measurable and makes content decoding an explicit policy.
 Without compression middleware, a compressed response remains encoded for the
@@ -71,3 +73,6 @@ output and including compressed-reader prefetch. Supply a finite value from 1
 through 1,000,000: the current constructor admits NaN, whose comparisons disable
 the ratio check, while the decoded byte limit remains active. Closing a request
 compressor joins its worker; a custom source's `Close` must unblock `Read`.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

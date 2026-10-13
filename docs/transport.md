@@ -1,5 +1,7 @@
 # Transport, Timeouts, Proxies, And Redirects
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 `New(Config{})` builds a standard `http.Client` with finite policy. The default
 interactive profile sets a 30-second standard `http.Client.Do` timeout, including
 redirects and body reads. It is not an outer deadline for middleware admission or
@@ -65,3 +67,6 @@ Tune only from measurement. A larger total timeout cannot repair a smaller
 response-header bound, and more connections cannot repair a downstream rate
 limit. Long-lived streaming calls should use the streaming profile plus an
 explicit request deadline appropriate for the vendor contract.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

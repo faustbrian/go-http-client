@@ -1,5 +1,7 @@
 # Rate Limits and Admission Delays
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Rate limiting controls physical attempts, not only top-level method calls.
 Every retry and redirect must gain admission before authentication and network
 I/O, preventing retry policy from bypassing the request budget.
@@ -103,3 +105,6 @@ and do not multiply the server delay.
 Do not layer another SDK limiter or retry loop unless its independent quota and
 attempt multiplication are explicitly bounded. Distributed coordination is an
 application-provided `RateLimiter`; core provides only in-process algorithms.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.

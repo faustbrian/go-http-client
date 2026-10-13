@@ -1,5 +1,7 @@
 # Typed Bounded Pagination
 
+[Documentation index](README.md) · [Repository entry](../README.md)
+
 Pagination is a typed lazy iterator over caller-owned vendor models. Core does
 not decode envelopes into untyped maps or replace endpoint request and response
 types.
@@ -156,3 +158,6 @@ reenter the iterator. Elapsed limits are checked around fetching, not enforced b
 a timer interrupting callbacks. Item/continuation copies are shallow; resume state
 is trusted application input. Link continuations can change origin, so Fetch must
 apply its own destination and credential trust policy.
+
+Choose the next guide in the [documentation index](README.md)
+or return to the [repository entry](../README.md) for installation and ownership.
