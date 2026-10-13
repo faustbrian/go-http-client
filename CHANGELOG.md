@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.0.4] - 2026-10-13
+
 ### Fixed
 
 - Reject URI fragment delimiters during request construction, including empty
@@ -17,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retain body-close failures alongside the original filesystem error.
 - Keep each authentication pair's operation origin/header policy independent;
   overlapping sensitive-header stripping still follows pipeline order.
+  ([6289680df3](https://github.com/faustbrian/go-http-client/commit/6289680df3a50d55e48c2285790ca46170935378))
 
 - HTTPCLIENT-DEC-001 sha256:413371570441ba65379c415008e3ed0d4a71bf37ff4f2243239d7bd8e46f6f84
 - HTTPCLIENT-DEC-009 sha256:0d72076667f17a1712a0ee7508b3cd5daa6ca563bee87a5a884baccd49d602ae
@@ -27,6 +30,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   response privacy and partial transfer/publication boundaries. Record the
   existing fragment-admission and NaN compression-ratio limitations without
   changing request execution or the selected protocol policy.
+  ([91d723db90](https://github.com/faustbrian/go-http-client/commit/91d723db908a341e74d0226f8a741c9a1d8f2c44))
+
+- Enforce source-documentation contracts with focused native contributor
+  checks while retaining full release qualification.
+  ([10a4d336b4](https://github.com/faustbrian/go-http-client/commit/10a4d336b4d638e3704ca3348f2e6d61f42440af))
+- Adopt authenticated supply-chain tooling without changing runtime
+  dependency locks.
+  ([caddd5839a](https://github.com/faustbrian/go-http-client/commit/caddd5839a23926cdc651ec74e12f89f07566d2c))
+- Standardize the risk-based development policy and connect adoption guidance
+  and source-package maps.
+  ([af6ab75fe6](https://github.com/faustbrian/go-http-client/commit/af6ab75fe68cbcec4da378d0f69f0689535b36d9),
+  [eb40147f47](https://github.com/faustbrian/go-http-client/commit/eb40147f4706ca9c769cebfce9104f8956fd1616))
 
 ## [2.0.3] - 2026-10-11
 
@@ -435,3 +450,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.1.2]: https://github.com/faustbrian/go-http-client/releases/tag/v1.1.2
 [1.1.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.1.0
 [1.0.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.0.0
+
+[2.0.4]: https://github.com/faustbrian/go-http-client/compare/v2.0.3...v2.0.4
