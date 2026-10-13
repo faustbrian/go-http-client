@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.4] - 2026-10-13
 
+Prepared release: select this version only after its tag and stable release
+are published. These notes account for the ten committed changes from the
+published v2.0.3 source `084b7b28` through `bd40aa7c`; this final source-note
+alignment is outside that frozen range.
+
 ### Fixed
 
 - Reject URI fragment delimiters during request construction, including empty
@@ -42,6 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and source-package maps.
   ([af6ab75fe6](https://github.com/faustbrian/go-http-client/commit/af6ab75fe68cbcec4da378d0f69f0689535b36d9),
   [eb40147f47](https://github.com/faustbrian/go-http-client/commit/eb40147f4706ca9c769cebfce9104f8956fd1616))
+
+- Align patch metadata, credential-policy failure coverage, reviewed mutation
+  identities and the valid fragment-free request-construction workload.
+  ([e9b1b1a9af](https://github.com/faustbrian/go-http-client/commit/e9b1b1a9af6c318805a9ab1e4022732614c0eed0),
+  [f5c941557c](https://github.com/faustbrian/go-http-client/commit/f5c941557c81c42ddbe70ed62296c08dd06e4464),
+  [166cb5a9c8](https://github.com/faustbrian/go-http-client/commit/166cb5a9c80e54ece4d4955afbad68f1915ea043),
+  [bd40aa7c7e](https://github.com/faustbrian/go-http-client/commit/bd40aa7c7e4d80861eb7a3633795f5ed05dc112e)).
 
 ## [2.0.3] - 2026-10-11
 
