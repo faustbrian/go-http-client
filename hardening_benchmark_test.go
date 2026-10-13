@@ -131,7 +131,7 @@ func BenchmarkRequestPolicyPaths(b *testing.B) {
 func BenchmarkRequestConstructionAndSerialization(b *testing.B) {
 	base, err := NewRequestSpec(
 		"https://api.example.test/v1/",
-		"widgets?existing=preserved#section",
+		"widgets?existing=preserved",
 	)
 	if err != nil {
 		b.Fatal(err)
