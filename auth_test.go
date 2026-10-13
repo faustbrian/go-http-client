@@ -809,20 +809,39 @@ func TestAuthenticationRejectsCleartextCredentialTransport(t *testing.T) {
 	if closeErr := response.Body.Close(); closeErr != nil {
 		t.Fatalf("close insecure opt-in response: %v", closeErr)
 	}
+}
 
+func TestAuthenticationRejectsUnpairedAttemptContext(t *testing.T) {
+	request, err := http.NewRequest(http.MethodGet, "http://api.example.test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	editor, err := NewBearerAuth("token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	middleware, err := NewAuthenticationMiddleware(AuthenticationOptions{
+		Name: "auth", Layer: MiddlewareClient, AllowInsecure: true,
+	}, editor)
+	if err != nil {
+		t.Fatal(err)
+	}
 	request = request.WithContext(context.WithValue(request.Context(), authenticationContextKey{}, authenticationScope{
 		origins: map[string]struct{}{"http://api.example.test": {}},
 	}))
-	pipeline, err = NewPipeline(middleware[1])
+	pipeline, err := NewPipeline(middleware[1])
 	if err != nil {
 		t.Fatalf("construct attempt-only pipeline: %v", err)
 	}
 	_, err = pipeline.Execute(request, TransportFunc(func(*http.Request) (*http.Response, error) {
-		t.Fatal("corrupt cleartext scope reached transport")
+		t.Fatal("unpaired authentication context reached transport")
 		return nil, nil
 	}))
 	if !errors.Is(err, ErrInvalidAuthentication) {
-		t.Fatalf("corrupt cleartext scope error = %v", err)
+		t.Fatalf("unpaired authentication context error = %v", err)
+	}
+	if !strings.Contains(err.Error(), "authentication operation context is missing") {
+		t.Fatal("unpaired authentication context was accepted")
 	}
 }
 

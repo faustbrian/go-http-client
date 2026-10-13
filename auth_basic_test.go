@@ -81,3 +81,33 @@ func TestBasicAuthPreservesValidCredentialWireValues(t *testing.T) {
 		})
 	}
 }
+
+// TestBasicAuthRejectsInvalidUTF8 exercises both public admission paths without
+// allowing malformed credential bytes to be retained in an editor or diagnostic.
+func TestBasicAuthRejectsInvalidUTF8(t *testing.T) {
+	for _, policy := range []CredentialPolicy{{}, {MaximumInputBytes: 128, MaximumEncodedBytes: 256}} {
+		for _, field := range []string{"username", "password"} {
+			for _, invalid := range []string{"private-\xff", "private-\xc0\xaf", "private-\xe2\x82"} {
+				username, password := "valid-user", "valid-password"
+				if field == "username" {
+					username = invalid
+				} else {
+					password = invalid
+				}
+				var editor RequestEditor
+				var err error
+				if policy == (CredentialPolicy{}) {
+					editor, err = NewBasicAuth(username, password)
+				} else {
+					editor, err = NewBasicAuthWithPolicy(username, password, policy)
+				}
+				if editor != nil || !errors.Is(err, ErrInvalidAuthentication) {
+					t.Fatal("Basic authentication admitted invalid UTF-8")
+				}
+				if strings.Contains(err.Error(), "private-") || !strings.Contains(err.Error(), "basic credentials are malformed") {
+					t.Fatal("Basic authentication diagnostic changed or disclosed credential content")
+				}
+			}
+		}
+	}
+}
