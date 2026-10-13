@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -28,6 +29,9 @@ func FuzzRequestSpecURL(fuzz *testing.F) {
 		}
 		if request.URL.User != nil || request.URL.Scheme != "http" && request.URL.Scheme != "https" {
 			t.Fatalf("unsafe accepted URL: %s", request.URL)
+		}
+		if request.URL.Fragment != "" || strings.ContainsRune(base, '#') || strings.ContainsRune(reference, '#') {
+			t.Fatal("fragment-bearing URL was admitted")
 		}
 	})
 }

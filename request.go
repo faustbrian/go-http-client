@@ -244,21 +244,21 @@ type queryInstruction struct {
 // resolution. The base must be an absolute HTTP(S) URL without user
 // information. Every absolute and network-path reference is rejected, including
 // one naming the same origin. Matching uses case-insensitive scheme and raw Host,
-// not default-port normalization. Fragments are currently accepted and retained
-// by Build despite the desired fragment-free policy; callers needing that
-// restriction must reject fragments before construction. Input size is caller-bounded.
+// not default-port normalization. Fragment delimiters are rejected in both
+// inputs; escaped hash characters in paths and queries remain data.
+// Input size is caller-bounded.
 func NewRequestSpec(baseURL string, reference string) (RequestSpec, error) {
 	base, err := url.Parse(baseURL)
-	if err != nil || !validBaseURL(base) {
-		return RequestSpec{}, fmt.Errorf("%w: base must be an absolute HTTP(S) URL without user information", ErrInvalidURL)
+	if err != nil || !validBaseURL(base) || strings.ContainsRune(baseURL, '#') {
+		return RequestSpec{}, fmt.Errorf("%w: base must be an absolute HTTP(S) URL without user information or fragments", ErrInvalidURL)
 	}
 
 	relative, err := url.Parse(reference)
 	if err != nil {
 		return RequestSpec{}, fmt.Errorf("%w: reference must not contain a scheme, authority, or user information", ErrInvalidURL)
 	}
-	if !validRelativeReference(relative) {
-		return RequestSpec{}, fmt.Errorf("%w: reference must not contain a scheme, authority, or user information", ErrInvalidURL)
+	if !validRelativeReference(relative) || strings.ContainsRune(reference, '#') {
+		return RequestSpec{}, fmt.Errorf("%w: reference must not contain a scheme, authority, user information, or fragment", ErrInvalidURL)
 	}
 
 	target := base.ResolveReference(relative)

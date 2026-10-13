@@ -17,7 +17,7 @@ func TestNewRequestSpecResolvesSameOriginReference(t *testing.T) {
 
 	spec, err := NewRequestSpec(
 		"https://api.example.com/v1/",
-		"widgets/a%2Fb?include=owner#details",
+		"widgets/a%2Fb?include=owner",
 	)
 	if err != nil {
 		t.Fatalf("NewRequestSpec() error = %v", err)
@@ -28,7 +28,7 @@ func TestNewRequestSpecResolvesSameOriginReference(t *testing.T) {
 		t.Fatalf("Build() error = %v", err)
 	}
 
-	if request.URL.String() != "https://api.example.com/v1/widgets/a%2Fb?include=owner#details" {
+	if request.URL.String() != "https://api.example.com/v1/widgets/a%2Fb?include=owner" {
 		t.Fatalf("URL = %q", request.URL.String())
 	}
 	if request.URL.Path != "/v1/widgets/a/b" {

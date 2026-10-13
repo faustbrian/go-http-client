@@ -24,8 +24,8 @@ therefore matters:
 
 Escaped path data is preserved. For example, `widgets/a%2Fb` has the decoded
 path `/v1/widgets/a/b` and escaped path `/v1/widgets/a%2Fb`. Query parameters
-are canonicalized at build time, and fragments remain available through the
-standard URL even though HTTP transports do not send fragments.
+are canonicalized at build time. Fragment delimiters in either construction
+input are rejected, including an empty fragment; escaped hashes remain data.
 
 ## Metadata precedence
 

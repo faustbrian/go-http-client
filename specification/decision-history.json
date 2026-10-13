@@ -5,7 +5,8 @@
       "id": "HTTPCLIENT-DEC-001",
       "digests": [
         "97631f28c8d6a17ae9747e9fa3c16d5c902dda58bac4c3c07cddb8115e41849f",
-        "5df315aeaf81b1ca629ebc512e73b06ca0d37e6a41d61b2250e28ade3f0d56b0"
+        "5df315aeaf81b1ca629ebc512e73b06ca0d37e6a41d61b2250e28ade3f0d56b0",
+        "413371570441ba65379c415008e3ed0d4a71bf37ff4f2243239d7bd8e46f6f84"
       ]
     },
     {
@@ -55,7 +56,8 @@
       "id": "HTTPCLIENT-DEC-009",
       "digests": [
         "06a81dfa129c2246eafe7762596a87d9b43576cdbc0df7eb975c272202efbf5f",
-        "3b3b9090d7197d56e7d784b405e64e26d3c6a005a788c13cac9daf4f7ab45429"
+        "3b3b9090d7197d56e7d784b405e64e26d3c6a005a788c13cac9daf4f7ab45429",
+        "0d72076667f17a1712a0ee7508b3cd5daa6ca563bee87a5a884baccd49d602ae"
       ]
     },
     {

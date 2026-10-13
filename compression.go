@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"sync"
@@ -48,8 +49,7 @@ type CompressionOptions struct {
 	// MaximumDecompressedBytes bounds decoded output; zero selects 64 MiB and the maximum is 1 TiB.
 	MaximumDecompressedBytes int64
 	// MaximumExpansionRatio selects the approximate ratio after 1 KiB decoded; zero selects 100.
-	// Supply a finite value in [1, 1e6]; NaN is currently admitted and disables the ratio
-	// comparison.
+	// Only finite values in [1, 1e6] are admitted.
 	MaximumExpansionRatio float64
 }
 
@@ -125,8 +125,7 @@ func NewCompressionMiddleware(options CompressionOptions) (Middleware, error) {
 	if maximumRatio == 0 {
 		maximumRatio = defaultMaximumExpansionRatio
 	}
-	// NaN bypasses this comparison; callers must provide a finite ratio.
-	if maximumRatio < 1 || maximumRatio > maximumExpansionRatio {
+	if math.IsNaN(maximumRatio) || math.IsInf(maximumRatio, 0) || maximumRatio < 1 || maximumRatio > maximumExpansionRatio {
 		return Middleware{}, fmt.Errorf("%w: maximum expansion ratio is invalid", ErrInvalidCompression)
 	}
 	policy := resolvedCompressionOptions{

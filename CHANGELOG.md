@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Reject URI fragment delimiters during request construction, including empty
+  fragments, while retaining escaped hashes in paths and queries.
+- Reject nonfinite compression ratios instead of silently disabling ratio
+  checks; zero still selects the finite default.
+- Close admitted response bodies after temporary-file permission failures and
+  retain body-close failures alongside the original filesystem error.
+- Keep each authentication pair's operation origin/header policy independent;
+  overlapping sensitive-header stripping still follows pipeline order.
+
+- HTTPCLIENT-DEC-001 sha256:413371570441ba65379c415008e3ed0d4a71bf37ff4f2243239d7bd8e46f6f84
+- HTTPCLIENT-DEC-009 sha256:0d72076667f17a1712a0ee7508b3cd5daa6ca563bee87a5a884baccd49d602ae
+
 ### Changed
 
 - Clarify HTTP policy recipes, cooperative cancellation and provider ownership,

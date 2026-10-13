@@ -69,9 +69,9 @@ appearing in ordinary error strings.
 ## Implementation boundaries
 
 The ratio is an approximate accounting check, beginning after 1 KiB of decoded
-output and including compressed-reader prefetch. Supply a finite value from 1
-through 1,000,000: the current constructor admits NaN, whose comparisons disable
-the ratio check, while the decoded byte limit remains active. Closing a request
+output and including compressed-reader prefetch. The constructor admits finite values from 1
+through 1,000,000 (or zero for the default), rejecting NaN and infinities. The
+decoded byte limit remains independently active. Closing a request
 compressor joins its worker; a custom source's `Close` must unblock `Read`.
 
 Choose the next guide in the [documentation index](README.md)

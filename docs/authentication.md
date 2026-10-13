@@ -326,8 +326,10 @@ argument; use the context-aware adapter when acquisition must honor that context
 `Now` callbacks run under token-cache locks and must not block or reenter.
 Client-credentials acquisition bypasses `Client.Do` URL-egress checks as well as
 middleware and cookies; its initial endpoint is validated and the underlying
-transport's dial/TLS policy still applies. Compose authentication pairs with
-consistent origin/header options because their operation state shares one key.
+transport's dial/TLS policy still applies. Each authentication pair retains its own
+operation origin and header policy. Sensitive-header sets can still overlap;
+all pairs apply their stripping rules in pipeline order. Keep each operation
+and attempt registration paired rather than mixing separately created pairs.
 
 Choose the next guide in the [documentation index](README.md)
 or return to the [repository entry](../README.md) for installation and ownership.

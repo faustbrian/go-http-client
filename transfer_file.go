@@ -40,8 +40,8 @@ func (err *FileTransferError) Unwrap() error { return err.Cause }
 // The caller must select a trusted destination in a caller-controlled directory;
 // this operation does not confine attacker-selected paths or symlink changes.
 // A directory-sync error after rename reports failure after replacement. Invalid
-// context/body preconditions retain caller body ownership. The existing temporary
-// Chmod failure path also leaves the body open; callers must close it on that error.
+// context/body preconditions retain caller body ownership; once admitted, the
+// response body is closed on every return path, including temporary-file failures.
 func CopyResponseToFile(
 	ctx context.Context,
 	response *http.Response,
@@ -130,7 +130,7 @@ func copyResponseToFile(
 		}
 	}()
 	if err := temporary.Chmod(mode); err != nil {
-		return result, &FileTransferError{Operation: "temporary mode", Cause: err}
+		return result, closeBeforeCopy(&FileTransferError{Operation: "temporary mode", Cause: err})
 	}
 	result, err = CopyResponse(ctx, response, temporary, options.Transfer)
 	if err != nil {

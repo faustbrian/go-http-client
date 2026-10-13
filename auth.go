@@ -46,9 +46,9 @@ type RequestEditorError struct {
 
 // AuthenticationOptions configures origin-bound attempt authentication. With
 // no AllowedOrigins, credentials are restricted to the logical operation's
-// initial origin. Compose authentication pairs with consistent origin/header
-// options: their operation state shares one context key. Additional sensitive
-// headers are stripped whenever a redirect leaves the trusted origin set.
+// initial origin. Each pair retains independent operation policy. Sensitive
+// header sets can overlap; each pair applies its stripping rules in pipeline
+// order outside its own trusted origins.
 type AuthenticationOptions struct {
 	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
 	Name string
@@ -67,7 +67,10 @@ type AuthenticationOptions struct {
 	AllowInsecure bool
 }
 
-type authenticationContextKey struct{}
+type authenticationContextKey struct {
+	// Nonzero size gives each paired registration a distinct pointer identity.
+	_ byte
+}
 
 type authenticationScope struct {
 	origins          map[string]struct{}
@@ -177,6 +180,7 @@ func NewAuthenticationMiddleware(options AuthenticationOptions, editor RequestEd
 	if err != nil {
 		return nil, err
 	}
+	contextKey := &authenticationContextKey{}
 
 	operationOptions := MiddlewareOptions{
 		Name:     options.Name,
@@ -202,7 +206,7 @@ func NewAuthenticationMiddleware(options AuthenticationOptions, editor RequestEd
 			allowInsecure:    options.AllowInsecure,
 		}
 
-		return next(request.WithContext(context.WithValue(request.Context(), authenticationContextKey{}, scope)))
+		return next(request.WithContext(context.WithValue(request.Context(), contextKey, scope)))
 	})
 	if err != nil {
 		return nil, err
@@ -211,7 +215,7 @@ func NewAuthenticationMiddleware(options AuthenticationOptions, editor RequestEd
 	attempt := operation
 	attempt.information.Scope = ScopeAttempt
 	attempt.around = func(request *http.Request, next Next) (*http.Response, error) {
-		scope, ok := request.Context().Value(authenticationContextKey{}).(authenticationScope)
+		scope, ok := request.Context().Value(contextKey).(authenticationScope)
 		if !ok {
 			return nil, fmt.Errorf("%w: authentication operation context is missing", ErrInvalidAuthentication)
 		}
