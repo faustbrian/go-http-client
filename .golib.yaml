@@ -28,7 +28,7 @@ operations:
     steps:
       - type: go-test
         packages: [.]
-        run: '^Test(TransportIntegrationReusesHTTP1Connection|TransportIntegrationTotalTimeoutCancelsRequest|LifecycleLeakCloseCancelsPendingOperation|DrainResponseCompletesWithinBoundAndCloses)$'
+        run: '^Test(TransportIntegrationReusesHTTP1Connection|TransportIntegrationTotalTimeoutCancelsRequest|LifecycleLeakCloseCancelsPendingOperation|DrainResponseCompletesWithinBoundAndCloses|ReadResponseBytesJoinsCallerCancellationAndClosesManagedBody)$'
         race: true
         count: 1
         timeout: 2m
@@ -49,6 +49,11 @@ operations:
   - module: .
     gate: fuzz
     steps:
+      - type: go-test
+        packages: [.]
+        fuzz: '^FuzzReadResponseBytes$'
+        budget: 10000x
+        timeout: 20m
       - type: go-test
         packages: [.]
         fuzz: '^FuzzRequestSpecURL$'

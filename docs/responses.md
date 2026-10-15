@@ -15,6 +15,7 @@ The ownership contract is consistent across every exit path:
 | Retry-discarded response | Retry middleware boundedly drains and closes it before another attempt. |
 | Redirect-intermediate response | The standard `net/http` client closes it; caller owns only the final response. |
 | `DecodeResponse` or `DecodeJSONResponse` | Helper consumes ownership and always closes it. |
+| `ReadResponseBytes` | Helper buffers a bounded raw body and always closes the admitted body. |
 | Rejected `ClassifyResponse` | Helper boundedly drains and closes it; accepted bodies stay caller-owned. |
 | `CopyResponse` and file/resume helpers | Ownership transfers after admission; see the precondition and temporary-mode exceptions below. Destinations remain caller-owned. |
 | Request-pool executor | Pool never owns bodies; each executor must finish its direct-operation contract. |
@@ -34,6 +35,40 @@ An exactly-at-limit body succeeds when EOF is reached. More data returns
 probe. Read and close causes remain available through `errors.Is` and
 `errors.As` without being rendered. Zero selects the finite 64 KiB default;
 explicit limits cannot exceed 16 MiB.
+
+## Raw bodies without codec policy
+
+Use `ReadResponseBytes` when the typed integration owns status and payload
+interpretation, including APIs that omit or mislabel their content type:
+
+```go
+body, err := httpclient.ReadResponseBytes(response, httpclient.ReadOptions{
+	MaximumBodyBytes: 1 << 20,
+})
+```
+
+The helper preserves bytes, including empty or non-UTF-8 data. It does not
+interpret status, media type, declared content length or document framing;
+the transport may independently reject malformed HTTP. Use the typed decoding
+helpers below when their stricter representation policy is appropriate.
+
+The default bound is 8 MiB and explicit bounds may not exceed 1 GiB. An
+exactly-at-limit body succeeds; overflow uses a one-byte probe and returns
+`ResponseLimitError`, matching `ErrResponseBodyLimit`. Read and limit failures
+return no partial body. Invalid options still close an admitted nonnil body.
+The bound limits payload bytes, not the extra memory used by buffer growth.
+The caller must not concurrently mutate the response or its body.
+
+Close errors are returned as `ResponseBodyError` without rendering their cause;
+a close-only failure can accompany the complete body. `IgnoreCloseError` is
+an explicit compatibility policy that still closes the body but suppresses
+only that final error. It never suppresses read or limit failures. Unwrapped
+causes and the returned raw bytes may contain sensitive data and remain the
+integration's responsibility. Reads and close are cooperative: use the body
+from a request with an appropriate context and timeout, rather than assuming
+the byte bound can interrupt arbitrary custom IO.
+
+## Typed decoding
 
 `DecodeJSONResponse` transfers body ownership to a bounded decoder. It always
 closes the body before returning, whether decoding succeeds or fails:

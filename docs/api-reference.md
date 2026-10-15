@@ -23,7 +23,7 @@ evidence, findings, and release gates.
 | Identity and resilience | operation/idempotency context APIs, retry, limiter, and circuit-breaker constructors |
 | Pagination and pools | typed paginator strategies, `Pool`, generators, channels, limits, and results |
 | Cache | cache middleware, stores, controls, provenance, schedulers, and invalidation |
-| Responses and transfers | status classification, typed decoding, drain, compression, range, copy, file, and resume APIs |
+| Responses and transfers | `ReadResponseBytes`, `ReadOptions`, status classification, typed decoding, drain, compression, range, copy, file, and resume APIs |
 | Scope and profiles | `PolicyScope`, resource keys, built-in profiles, overrides, resolved policy and provenance |
 | Egress and TLS | `EgressPolicy`, `TLSPolicy`, options, typed denial and pin errors |
 | Observability | `BeginTelemetryObserver`, legacy `TelemetryObserver`, propagator ports, events, W3C context, metric labels, and slog adapter |

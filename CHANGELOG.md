@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.1.0] - 2026-10-15
+
+### Added
+
+- Add bounded raw response consumption with `ReadResponseBytes` and
+  `ReadOptions`. Preserve raw payload interpretation at the integration
+  boundary while sharing inclusive byte limits and close-once ownership.
+  Close errors remain visible by default; an explicit compatibility option
+  suppresses only close failures, never reader or limit errors.
+
+### Fixed
+
+- Keep private reader errors redacted when their chain includes the body-limit
+  sentinel. Raw and strict response readers preserve unwrapping and native
+  byte-limit errors without rendering arbitrary reader text.
+
 ## [2.0.4] - 2026-10-13
 
 Prepared release: select this version only after its tag and stable release
@@ -464,3 +480,5 @@ alignment is outside that frozen range.
 [1.0.0]: https://github.com/faustbrian/go-http-client/releases/tag/v1.0.0
 
 [2.0.4]: https://github.com/faustbrian/go-http-client/compare/v2.0.3...v2.0.4
+
+[2.1.0]: https://github.com/faustbrian/go-http-client/compare/v2.0.4...v2.1.0

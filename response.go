@@ -281,13 +281,20 @@ func resolveCustomDecodeOptions(options DecodeOptions) (int64, []string, error) 
 	return resolveDecodeOptions(options)
 }
 
-func resolveDecodeOptions(options DecodeOptions) (int64, []string, error) {
-	maximum := options.MaximumBodyBytes
+func resolveMaximumBodyBytes(maximum int64) (int64, error) {
 	if maximum == 0 {
 		maximum = defaultMaximumDecodeBytes
 	}
 	if maximum < 1 || maximum > maximumDecodeBytes {
-		return 0, nil, fmt.Errorf("%w: maximum body is invalid", ErrInvalidResponsePolicy)
+		return 0, fmt.Errorf("%w: maximum body is invalid", ErrInvalidResponsePolicy)
+	}
+	return maximum, nil
+}
+
+func resolveDecodeOptions(options DecodeOptions) (int64, []string, error) {
+	maximum, err := resolveMaximumBodyBytes(options.MaximumBodyBytes)
+	if err != nil {
+		return 0, nil, err
 	}
 	expected := append([]string(nil), options.ExpectedMediaTypes...)
 	if len(expected) == 0 {
@@ -342,7 +349,9 @@ func expectedResponseLength(response *http.Response) int64 {
 }
 
 func wrapResponseDecodeError(err error) error {
-	if errors.Is(err, ErrResponseBodyLimit) {
+	// Only our direct limit value has known-safe text. A reader can wrap the
+	// sentinel with private data; retain that cause without rendering it.
+	if _, nativeLimit := err.(*ResponseLimitError); nativeLimit {
 		return err
 	}
 	return &ResponseDecodeError{Cause: err}
