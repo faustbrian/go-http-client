@@ -103,8 +103,9 @@ type RetryOptions struct {
 	RetryUnsafeWithIdempotency bool
 	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
 	Clock RetryClock
-	// Random is borrowed and jitters exponential delays; nil selects a
-	// per-middleware source seeded from crypto/rand.
+	// Random is borrowed, shared by every request through the middleware and
+	// must be safe for concurrent use. It jitters exponential delays; nil
+	// selects a per-middleware source seeded from crypto/rand.
 	Random retry.Random
 	// Policy is borrowed; nil uses the package's method, status and error policy.
 	Policy RetryPolicy
@@ -222,6 +223,9 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 	hasIdempotency := idempotencyPolicyApplied(request.Context())
 	attempt := 0
 	var passthrough error
+	// lastStatus keeps the previous response's status so a stop before the
+	// next exchange, such as a failed body replay, still reports it.
+	var lastStatus error
 	// Exchanges keep the caller's request context. The executor's attempt
 	// context ends when Do returns, which would cancel a returned response body
 	// mid-stream; Policy.OperationTimeout owns the exchange deadline instead.
@@ -230,7 +234,7 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 		if attempt > 0 {
 			replayed, err := replayRequest(request)
 			if err != nil {
-				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(err)
+				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(errors.Join(lastStatus, err))
 			}
 			current = replayed
 		}
@@ -260,6 +264,14 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 		closeErr := drainAndCloseRetryResponse(response)
 		pending = nil
 		cause := retryCause(response, failure)
+		if cause == nil {
+			// Only a broken inner middleware returns neither a response nor an error.
+			cause = ErrInvalidMiddlewareResult
+		}
+		lastStatus = nil
+		if response != nil {
+			lastStatus = cause
+		}
 		if closeErr != nil {
 			return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(errors.Join(cause, closeErr))
 		}
@@ -395,6 +407,14 @@ func (clock retryPolicyClock) Now() time.Time { return clock.clock.Now() }
 
 func (clock retryPolicyClock) Sleep(ctx context.Context, delay time.Duration) error {
 	return clock.clock.Wait(ctx, delay)
+}
+
+// WithTimeout deliberately adds no per-attempt deadline. MaximumElapsed is
+// checked between exchanges; a go-retry attempt deadline would also end the
+// attempt early and drop it from the retry history, while exchange deadlines
+// belong to Policy.OperationTimeout.
+func (retryPolicyClock) WithTimeout(parent context.Context, _ time.Duration) (context.Context, context.CancelFunc) {
+	return parent, func() {}
 }
 
 func newRetryRandom() (retry.Random, error) {

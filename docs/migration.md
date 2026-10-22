@@ -34,8 +34,10 @@ Behavior changes to review when adopting v3:
   before.
 - `MaximumElapsed` stops retries between exchanges; it is still not a deadline
   for the exchange itself.
-- Telemetry: replay, non-replayable-body and response-cleanup stops report
-  `failure` or `transport_error` instead of `retry_exhausted`, and
+- Telemetry: failed exchanges that policy does not retry, such as an unsafe
+  `POST` without idempotency proof, and replay, non-replayable-body and
+  response-cleanup stops report `failure` or `transport_error` instead of
+  `retry_exhausted`, and
   attempt-limit and elapsed-budget stops report `retry_exhausted` ahead of
   cancellation, rate-limit and circuit outcomes.
 

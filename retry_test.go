@@ -633,6 +633,73 @@ func TestRetryCustomPolicyCannotReplayOneShotBody(t *testing.T) {
 	}
 }
 
+func TestRetryReplayFailureKeepsLastStatus(t *testing.T) {
+	t.Parallel()
+
+	replayFailure := errors.New("replay failure")
+	middleware, err := NewRetryMiddleware(RetryOptions{Name: "retry", MaximumAttempts: 3, Clock: &retryTestClock{now: time.Unix(1_700_000_000, 0)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	client, err := New(Config{Middleware: []Middleware{middleware}, Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return retryResponse(http.StatusServiceUnavailable, "", new(bool)), nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestClient(t, client)
+	request, _ := http.NewRequest(http.MethodPut, "https://api.example.test", strings.NewReader("body"))
+	request.GetBody = func() (io.ReadCloser, error) { return nil, replayFailure }
+	_, err = client.Do(request)
+	var opened *BodyOpenError
+	var status interface{ StatusCode() int }
+	if calls != 1 || !errors.As(err, &opened) || !errors.Is(err, replayFailure) ||
+		!errors.As(err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
+		t.Fatalf("replay stop: calls %d, err %v", calls, err)
+	}
+}
+
+// TestRetryElapsedBudgetDoesNotCutSlowExchanges uses wall time: a slow
+// exchange that crosses MaximumElapsed completes, is recorded, and the budget
+// then stops further retries with that exchange's status in history.
+func TestRetryElapsedBudgetDoesNotCutSlowExchanges(t *testing.T) {
+	t.Parallel()
+
+	middleware, err := NewRetryMiddleware(RetryOptions{
+		Name: "retry", MaximumAttempts: 5, MaximumElapsed: 50 * time.Millisecond,
+		BaseDelay: time.Millisecond, MaximumDelay: time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	client, err := New(Config{Middleware: []Middleware{middleware}, Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		if calls == 1 {
+			return retryResponse(http.StatusTooManyRequests, "", new(bool)), nil
+		}
+		time.Sleep(100 * time.Millisecond)
+		return retryResponse(http.StatusServiceUnavailable, "", new(bool)), nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestClient(t, client)
+	request, _ := http.NewRequest(http.MethodGet, "https://api.example.test", nil)
+	_, err = client.Do(request)
+	var budget *goretry.BudgetError
+	if calls != 2 || !errors.As(err, &budget) || budget.Kind != goretry.BudgetElapsed {
+		t.Fatalf("slow exchange: calls %d, err %v", calls, err)
+	}
+	var status interface{ StatusCode() int }
+	history := budget.Result().History
+	if len(history) != 1 || !errors.As(history[0].Err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
+		t.Fatalf("history = %+v, want the slow 503 exchange", history)
+	}
+}
+
 func TestRetryTerminalErrorsReportOutcomeAndStatus(t *testing.T) {
 	t.Parallel()
 

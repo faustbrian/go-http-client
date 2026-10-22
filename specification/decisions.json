@@ -315,6 +315,7 @@
       "executable_evidence": [
         "TestRetryUsesBoundedRetryAfterAndClosesDiscardedResponses",
         "TestRetryAfterSelectsDelayWithinCaps",
+        "TestRateLimitObserversShareCanonicalRetryAfterParsing",
         "TestRateLimitObservationExactBoundaries",
         "TestRateLimitHeaderObservationMatrix"
       ],
