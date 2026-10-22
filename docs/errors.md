@@ -30,9 +30,12 @@ than comparing message text:
 ```go
 var status *httpclient.HTTPStatusError
 var exhausted *retry.ExhaustedError
+var budget *retry.BudgetError
 switch {
 case errors.As(err, &status):
 	// Use status.StatusCode, status.VendorCode, and status.Retryable.
+case errors.As(err, &budget):
+	// The retry elapsed budget ran out; check before deadline errors.
 case errors.Is(err, context.Canceled):
 	// Caller cancellation, not a dependency failure.
 case errors.As(err, &exhausted):

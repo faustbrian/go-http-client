@@ -114,6 +114,7 @@ type RetryOptions struct {
 type resolvedRetryOptions struct {
 	policy *retry.Policy
 	retry  RetryPolicy
+	clock  RetryClock
 }
 
 // NewRetryMiddleware creates operation-scoped transport middleware. The
@@ -178,15 +179,16 @@ func resolveRetryOptions(options RetryOptions) (resolvedRetryOptions, error) {
 		MaxElapsed: maximumElapsed, MaxDelay: maximumRetryAfter,
 		Clock: scheduler, Sleeper: scheduler, Random: random,
 		Classifier: retry.ClassifyFunc(classifyRetryOutcome),
-		// Budget and cancellation stops carry only their context cause; keeping
-		// the last attempt lets callers read the final HTTP status from history.
+		// Budget stops after a wait and cancellation stops carry only their
+		// context cause; keeping the last attempt lets callers read the final
+		// HTTP status from history.
 		HistoryLimit: 1,
 	})
 	if err != nil {
 		return resolvedRetryOptions{}, fmt.Errorf("%w: %w", ErrInvalidRetryPolicy, err)
 	}
 
-	return resolvedRetryOptions{policy: executor, retry: policy}, nil
+	return resolvedRetryOptions{policy: executor, retry: policy, clock: clock}, nil
 }
 
 func resolveRetryBackoff(options RetryOptions, maximumRetryAfter time.Duration) (retry.Backoff, error) {
@@ -209,7 +211,9 @@ func resolveRetryBackoff(options RetryOptions, maximumRetryAfter time.Duration) 
 	}
 	maximumDelay := options.MaximumDelay
 	if maximumDelay == 0 {
-		maximumDelay = defaultRetryMaximumDelay
+		// An unset MaximumDelay follows a lower MaximumRetryAfter so that only
+		// lowering the overall cap stays a valid configuration.
+		maximumDelay = min(defaultRetryMaximumDelay, maximumRetryAfter)
 	}
 	if baseDelay < 0 || maximumDelay < baseDelay || maximumDelay > maximumRetryAfter {
 		return nil, fmt.Errorf("%w: retry duration bounds are invalid", ErrInvalidRetryPolicy)
@@ -226,12 +230,20 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 	// lastStatus keeps the previous response's status so a stop before the
 	// next exchange, such as a failed body replay, still reports it.
 	var lastStatus error
+	start := options.clock.Now()
 	// Exchanges keep the caller's request context. The executor's attempt
 	// context ends when Do returns, which would cancel a returned response body
 	// mid-stream; Policy.OperationTimeout owns the exchange deadline instead.
 	operation := func(context.Context) (retry.AttemptResult[*http.Response], error) {
 		current := request
 		if attempt > 0 {
+			// go-retry clamps a negative elapsed time to zero, so a custom clock
+			// that moves backwards would never exhaust MaximumElapsed. Treat it
+			// as an exhausted elapsed budget, as v2 did, instead of replaying.
+			if options.clock.Now().Before(start) {
+				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown},
+					retry.Permanent(errors.Join(&retry.BudgetError{Kind: retry.BudgetElapsed}, lastStatus))
+			}
 			replayed, err := replayRequest(request)
 			if err != nil {
 				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(errors.Join(lastStatus, err))

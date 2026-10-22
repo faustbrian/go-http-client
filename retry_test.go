@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -768,9 +769,11 @@ func TestRetryTerminalErrorsReportOutcomeAndStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	exchanges := 0
 	client, err := New(Config{
 		Middleware: []Middleware{middleware}, Telemetry: &TelemetryOptions{BeginObserver: observer},
 		Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+			exchanges++
 			return retryResponse(http.StatusServiceUnavailable, "5", new(bool)), nil
 		}),
 	})
@@ -786,8 +789,8 @@ func TestRetryTerminalErrorsReportOutcomeAndStatus(t *testing.T) {
 	}
 	// A budget found exhausted after a completed wait carries the deadline cause;
 	// callers must test BudgetError before context.DeadlineExceeded.
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("post-wait budget stop = %v, want DeadlineExceeded identity", err)
+	if !errors.Is(err, context.DeadlineExceeded) || exchanges != 2 {
+		t.Fatalf("post-wait budget stop = %v after %d exchanges, want DeadlineExceeded identity after 2", err, exchanges)
 	}
 	history := budget.Result().History
 	if len(history) == 0 || !errors.As(history[len(history)-1].Err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
@@ -913,6 +916,81 @@ func TestRetryDrainsAndClosesBeforeWaiting(t *testing.T) {
 	}
 }
 
+func TestRetryBackwardClockStopsAsElapsedBudget(t *testing.T) {
+	t.Parallel()
+
+	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+	clock.wait = func(context.Context, time.Duration) error {
+		clock.mu.Lock()
+		clock.now = clock.now.Add(-time.Hour)
+		clock.mu.Unlock()
+
+		return nil
+	}
+	_, calls, err := runRetry(t, RetryOptions{MaximumAttempts: 5, Clock: clock, Random: zeroRetryRandom{}}, func(int) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
+	})
+	var budget *goretry.BudgetError
+	var status interface{ StatusCode() int }
+	if calls != 1 || !errors.As(err, &budget) || budget.Kind != goretry.BudgetElapsed ||
+		!errors.As(err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
+		t.Fatalf("backward clock = %v, calls %d", err, calls)
+	}
+	if outcome := telemetryOutcome(nil, err); outcome != TelemetryOutcomeRetryFailure {
+		t.Fatalf("backward clock telemetry = %q", outcome)
+	}
+}
+
+func TestRetryDefaultMaximumDelayFollowsLowerRetryAfterCap(t *testing.T) {
+	t.Parallel()
+
+	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+	_, calls, err := runRetry(t, RetryOptions{MaximumAttempts: 3, MaximumRetryAfter: 500 * time.Millisecond, Clock: clock, Random: maxRetryRandom{}}, func(int) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
+	})
+	var exhausted *goretry.ExhaustedError
+	if calls != 3 || !errors.As(err, &exhausted) {
+		t.Fatalf("lowered cap = %v, calls %d", err, calls)
+	}
+	for _, delay := range clock.Delays() {
+		if delay > 500*time.Millisecond {
+			t.Fatalf("delay %v exceeds the lowered cap", delay)
+		}
+	}
+}
+
+func TestRetryCancellationDuringExchangeReturnsOriginalFailure(t *testing.T) {
+	t.Parallel()
+
+	middleware, err := NewRetryMiddleware(RetryOptions{Name: "retry", MaximumAttempts: 3, Clock: &retryTestClock{now: time.Unix(1_700_000_000, 0)}, Random: zeroRetryRandom{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	transportFailure := fmt.Errorf("dial: %w", context.Canceled)
+	calls := 0
+	client, err := New(Config{Middleware: []Middleware{middleware}, Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		if calls == 1 {
+			return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
+		}
+		cancel()
+
+		return nil, transportFailure
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestClient(t, client)
+	request, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.example.test", nil)
+	_, err = client.Do(request)
+	var contextErr *goretry.ContextError
+	if calls != 2 || !errors.Is(err, context.Canceled) || errors.As(err, &contextErr) {
+		t.Fatalf("cancellation during exchange = %v, calls %d", err, calls)
+	}
+}
+
 func TestRetryClockWaitFailureStopsPermanently(t *testing.T) {
 	t.Parallel()
 
@@ -959,7 +1037,10 @@ func TestRetryElapsedBudgetUsesDefaultsAndStopsBeforeWaiting(t *testing.T) {
 				return retryResponse(http.StatusServiceUnavailable, test.header, &closed), nil
 			})
 			var budget *goretry.BudgetError
-			if calls != test.wantCalls || !slices.Equal(clock.Delays(), test.wantDelays) || errors.As(err, &budget) != test.wantElapsed || !closed {
+			// A budget found exhausted before a wait carries the operation error,
+			// not a deadline cause, under the default policy.
+			if calls != test.wantCalls || !slices.Equal(clock.Delays(), test.wantDelays) || errors.As(err, &budget) != test.wantElapsed || !closed ||
+				errors.Is(err, context.DeadlineExceeded) {
 				t.Fatalf("calls %d delays %v err %v closed %t", calls, clock.Delays(), err, closed)
 			}
 			if test.wantElapsed && budget.Kind != goretry.BudgetElapsed {

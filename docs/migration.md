@@ -22,7 +22,8 @@ Behavior changes to review when adopting v3:
 - Retry-After is a minimum wait: it lengthens a shorter backoff but no longer
   shortens it, so `Retry-After: 0` waits the backoff. Every delay, including a
   hint, is capped by `MaximumRetryAfter`; `MaximumDelay` and explicit `Delays`
-  must not exceed it.
+  must not exceed it. An unset `MaximumDelay` defaults to the lower of 2s and
+  `MaximumRetryAfter`.
 - Retry-After values longer than 128 raw bytes are ignored. Numeric values
   above 2^31-1 seconds are accepted instead of rejected, saturating only beyond
   the duration range, and are then capped by `MaximumRetryAfter`. Vendor
