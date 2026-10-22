@@ -99,9 +99,11 @@ Redirect replay remains under `net/http`; retry does not weaken its rules.
 When a retryable exchange cannot continue, the middleware returns the
 `go-retry/v3` terminal error: `ExhaustedError` for the attempt limit,
 `BudgetError` for the elapsed budget, `PermanentError` for replayability or
-body-lifecycle failures, and `ContextError` for cancellation. Their metadata
-reports attempts and elapsed time; the last HTTP status is reachable through
-`errors.As` to a value with `StatusCode() int`. None renders transport text,
+body-lifecycle failures, and `ContextError` for cancellation. `Result()` reports
+executor callbacks, including a replay that failed before sending, and elapsed
+time. For attempt-limit and permanent stops the last HTTP status is reachable
+through `errors.As` to a value with `StatusCode() int`; for budget and
+cancellation stops it is in the last `Result().History` entry. None renders transport text,
 URLs, headers, keys, or payloads. A failed exchange that policy does not retry
 returns its original error, and non-retryable HTTP responses remain ordinary
 `http.Response` values.

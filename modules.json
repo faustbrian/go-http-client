@@ -32,7 +32,9 @@
       "version": "3.0.0",
       "tag_prefix": "v",
       "owned_dependencies": [
-        "github.com/faustbrian/go-circuit-breaker"
+        "github.com/faustbrian/go-circuit-breaker",
+        "github.com/faustbrian/go-resilience/v2",
+        "github.com/faustbrian/go-retry/v3"
       ],
       "reverse_owned_dependencies": [
         "github.com/faustbrian/go-http-middleware/integration/siblings",

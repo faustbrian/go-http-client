@@ -2,13 +2,14 @@
 
 ## Supported versions
 
-The latest stable v1 and v2 releases and `main` are supported. The latest
-minor release of the current major version receives security fixes. Older
-release lines may receive fixes at maintainer discretion.
+The latest stable v1, v2 and v3 releases and `main` are supported; v3 is
+supported once published. The latest minor release of the current major
+version receives security fixes. Older release lines may receive fixes at
+maintainer discretion.
 
-The root v2 release line adds finite credential-admission safeguards. They do
-not apply to consumers that still import published v1. Publishing v2 does not
-withdraw the latest-stable-v1 support promise above.
+The v2 and v3 release lines include finite credential-admission safeguards.
+They do not apply to consumers that still import published v1. Publishing a
+new major does not withdraw earlier support promises above.
 
 ## Reporting a vulnerability
 

@@ -2,11 +2,11 @@
 
 [Documentation index](README.md) · [Repository entry](../README.md)
 
-The root `v2.0.0` release uses the `/v2` module and import suffix for finite
-credential admission and new option fields. Historical v1 releases remain
-available on their original module and import path. The v1 API baseline is
-retained separately from the generated v2 baseline. Nominal request and option
-types are not interchangeable across those major import paths.
+The root v3 line uses the `/v3` module and import suffix; earlier majors remain
+available on their original paths, and their API baselines remain in Git
+history. Nominal request and option types are not interchangeable across major
+import paths. Retry scheduling types and terminal errors come from
+`github.com/faustbrian/go-retry/v3` and are part of the public contract.
 
 The module follows semantic versioning. Major releases may adjust
 exported APIs with documented migration notes; patch releases remain focused on

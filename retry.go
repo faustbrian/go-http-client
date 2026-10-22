@@ -177,6 +177,9 @@ func resolveRetryOptions(options RetryOptions) (resolvedRetryOptions, error) {
 		MaxElapsed: maximumElapsed, MaxDelay: maximumRetryAfter,
 		Clock: scheduler, Sleeper: scheduler, Random: random,
 		Classifier: retry.RetryableClassifier(),
+		// Budget and cancellation stops carry only their context cause; keeping
+		// the last attempt lets callers read the final HTTP status from history.
+		HistoryLimit: 1,
 	})
 	if err != nil {
 		return resolvedRetryOptions{}, fmt.Errorf("%w: %w", ErrInvalidRetryPolicy, err)

@@ -8,7 +8,7 @@ non-secret logs.
 Use GitHub Discussions for adoption questions and design exploration. Use the
 private process in [`SECURITY.md`](SECURITY.md) for vulnerabilities.
 
-Support covers the latest stable v1 and v2 releases, with the Go 1.27.0
-minimum declared by those release lines. Version and behavior compatibility
+Support covers the latest stable v1, v2 and v3 releases, with the Go 1.27.0
+minimum declared by those release lines; build with Go 1.27.3 or newer. Version and behavior compatibility
 follow [`COMPATIBILITY.md`](COMPATIBILITY.md). Unreleased main-branch behavior
 may change while remediation gates are incomplete.

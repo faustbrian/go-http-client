@@ -419,7 +419,7 @@ func TestRetryAfterSelectsDelayWithinCaps(t *testing.T) {
 		header                 string
 		want                   time.Duration
 	}{
-		{name: "saturated seconds capped", backoff: 4 * time.Second, retryAfterCap: 4 * time.Second, random: maxRetryRandom{}, header: "2147483648", want: 4 * time.Second},
+		{name: "beyond 31-bit seconds capped", backoff: 4 * time.Second, retryAfterCap: 4 * time.Second, random: maxRetryRandom{}, header: "2147483648", want: 4 * time.Second},
 		{name: "beyond uint64 capped", backoff: 4 * time.Second, retryAfterCap: 4 * time.Second, random: maxRetryRandom{}, header: "18446744073709551616", want: 4 * time.Second},
 		{name: "128-byte padded value parsed", backoff: 500 * time.Millisecond, retryAfterCap: 30 * time.Second, random: maxRetryRandom{}, header: strings.Repeat(" ", 127) + "1", want: time.Second},
 		{name: "129-byte padded value absent", backoff: 500 * time.Millisecond, retryAfterCap: 30 * time.Second, random: maxRetryRandom{}, header: strings.Repeat(" ", 128) + "1", want: 500 * time.Millisecond},
@@ -583,7 +583,100 @@ func TestRetryLeavesIneligibleExchangesUnchanged(t *testing.T) {
 			if !errors.Is(err, transportFailure) || response != nil {
 				t.Fatalf("ineligible failure = %v, want the original transport failure", err)
 			}
+			if errors.As(err, new(*goretry.PermanentError)) || errors.As(err, new(*goretry.ExhaustedError)) {
+				t.Fatalf("ineligible failure was wrapped as a retry outcome: %#v", err)
+			}
+			baseline, baselineErr := New(Config{Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+				return nil, transportFailure
+			})})
+			if baselineErr != nil {
+				t.Fatal(baselineErr)
+			}
+			defer closeTestClient(t, baseline)
+			plain, _ := http.NewRequest(http.MethodPost, "https://api.example.test", strings.NewReader("body"))
+			_, want := baseline.Do(plain)
+			if err.Error() != want.Error() {
+				t.Fatalf("ineligible failure text = %q, want the unwrapped client's %q", err, want)
+			}
 		})
+	}
+}
+
+func TestRetryCustomPolicyCannotReplayOneShotBody(t *testing.T) {
+	t.Parallel()
+
+	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+	middleware, err := NewRetryMiddleware(RetryOptions{
+		Name: "retry", MaximumAttempts: 3, Clock: clock,
+		Policy: RetryPolicyFunc(func(RetryAttempt) bool { return true }),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	closed := false
+	client, err := New(Config{Middleware: []Middleware{middleware}, Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return retryResponse(http.StatusServiceUnavailable, "", &closed), nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestClient(t, client)
+	request, _ := http.NewRequest(http.MethodPut, "https://api.example.test", &retryOneShotReader{Reader: strings.NewReader("body")})
+	_, err = client.Do(request)
+	var permanent *goretry.PermanentError
+	var status interface{ StatusCode() int }
+	if calls != 1 || len(clock.Delays()) != 0 || !errors.As(err, &permanent) || !closed ||
+		!errors.As(err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
+		t.Fatalf("one-shot body: calls %d, delays %v, closed %t, err %v", calls, clock.Delays(), closed, err)
+	}
+}
+
+func TestRetryTerminalErrorsReportOutcomeAndStatus(t *testing.T) {
+	t.Parallel()
+
+	closeFailure := errors.New("close failure")
+	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+	_, _, err := runRetry(t, RetryOptions{MaximumAttempts: 3, Clock: clock}, func(int) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusTooManyRequests, Body: retryFailingBody{closeErr: closeFailure}}, nil
+	})
+	var status interface{ StatusCode() int }
+	if !errors.As(err, new(*goretry.PermanentError)) || !errors.As(err, &status) || status.StatusCode() != http.StatusTooManyRequests {
+		t.Fatalf("close failure status = %v", err)
+	}
+
+	observer := &telemetryRecordingBeginObserver{}
+	middleware, err := NewRetryMiddleware(RetryOptions{
+		Name: "retry", MaximumAttempts: 5, MaximumElapsed: 10 * time.Second,
+		Clock: &retryTestClock{now: time.Unix(1_700_000_000, 0)}, Random: zeroRetryRandom{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := New(Config{
+		Middleware: []Middleware{middleware}, Telemetry: &TelemetryOptions{BeginObserver: observer},
+		Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+			return retryResponse(http.StatusServiceUnavailable, "5", new(bool)), nil
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestClient(t, client)
+	request, _ := http.NewRequest(http.MethodGet, "https://api.example.test", nil)
+	_, err = client.Do(request)
+	var budget *goretry.BudgetError
+	if !errors.As(err, &budget) || budget.Kind != goretry.BudgetElapsed {
+		t.Fatalf("budget stop = %v", err)
+	}
+	history := budget.Result().History
+	if len(history) == 0 || !errors.As(history[len(history)-1].Err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
+		t.Fatalf("last status is not in the budget history: %+v", history)
+	}
+	last := observer.events[len(observer.events)-1]
+	if last.Scope != TelemetryOperation || last.Outcome != TelemetryOutcomeRetryFailure {
+		t.Fatalf("operation outcome = %+v, want %s", last, TelemetryOutcomeRetryFailure)
 	}
 }
 

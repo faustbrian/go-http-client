@@ -1,9 +1,11 @@
 # Compatibility Policy
 
-The root v2 release line uses `github.com/faustbrian/go-http-client/v3`.
-Select it with `go get github.com/faustbrian/go-http-client/v3@v2.0.0`.
-Historical v1 releases remain available at the original
-`github.com/faustbrian/go-http-client` module and import path. Root releases
+The root v3 release line uses `github.com/faustbrian/go-http-client/v3`.
+Select it with `go get github.com/faustbrian/go-http-client/v3@v3.0.0`.
+Earlier majors remain available at their original module and import paths.
+Retry scheduling types and terminal errors from
+`github.com/faustbrian/go-retry/v3` are part of this module's public contract,
+so a new go-retry major requires a new major here. Root releases
 use `v<version>` tags from main. The module requires Go 1.27.0, as declared in
 `go.mod`; a future increase to that minimum is a compatibility change announced
 in the changelog.

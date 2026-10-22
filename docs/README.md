@@ -85,7 +85,6 @@
 - [Retry Safety and Backoff](retries.md) — `docs/retries.md`
 - [Security assurance](security-assurance.md) — `docs/security-assurance.md`
 - [Security Model](security.md) — `docs/security.md`
-- [Source documentation audit](source-documentation-audit.md) — `docs/source-documentation-audit.md`
 - [HTTP client specification decisions](specification-decisions.md) — `docs/specification-decisions.md`
 - [Sanitized HTTP test fixtures](testing-fixtures.md) — `docs/testing-fixtures.md`
 - [Testing Integrations](testing.md) — `docs/testing.md`

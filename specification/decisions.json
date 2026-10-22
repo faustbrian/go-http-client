@@ -280,7 +280,7 @@
       "public_apis": [
         "RetryOptions",
         "NewRetryMiddleware",
-        "RetryExhaustedError"
+        "RetryPolicy"
       ],
       "documentation": [
         "docs/specification-decisions.md"

@@ -12,8 +12,8 @@ instead of retaining compatibility switches or parallel implementations:
 | Local Retry-After parsing | `github.com/faustbrian/go-retry/v3/adapters/http.ParseRetryAfter`, used by retry and both rate-limit observers |
 | HTTP-owned backoff, jitter, budget and exhaustion engine | `github.com/faustbrian/go-retry/v3` executes the schedule; the middleware keeps HTTP eligibility, replay and response cleanup |
 | `RetryOptions.Jitter`, `RetryJitter`, `RetryJitterFunc` | `RetryOptions.Random` (a `retry.Random`), applied to exponential delays only |
-| `RetryExhaustedError`, `ErrRetryExhausted` | `retry.ExhaustedError`, `retry.BudgetError`, `retry.PermanentError`; the last status is reachable through `errors.As` to a value with `StatusCode() int` |
-| `ReadOptions.IgnoreCloseError` | none: close failures are always reported with the complete body |
+| `RetryExhaustedError`, `ErrRetryExhausted` | `retry.ExhaustedError`, `retry.BudgetError`, `retry.PermanentError`, `retry.ContextError`; see [retries](retries.md) for where each exposes the last status |
+| `ReadOptions.IgnoreCloseError` | none: close failures are always reported with the complete body; to accept a close-only failure, use the returned body when `errors.As` finds a `ResponseBodyError` whose `Operation` is `"close"` and no read or limit error is present |
 | `TelemetryObserver`, `TelemetryOptions.Observer`, `SlogTelemetryObserver.Start` | `BeginTelemetryObserver`, `TelemetryOptions.BeginObserver`, `Begin` |
 | `Config.Timeout` | `Config.Policy.OperationTimeout` |
 
@@ -23,8 +23,9 @@ Behavior changes to review when adopting v3:
   shortens it, so `Retry-After: 0` waits the backoff. Every delay, including a
   hint, is capped by `MaximumRetryAfter`; `MaximumDelay` and explicit `Delays`
   must not exceed it.
-- Retry-After values longer than 128 raw bytes are ignored, and numeric values
-  above 2^31-1 seconds saturate instead of being rejected. Vendor
+- Retry-After values longer than 128 raw bytes are ignored. Numeric values
+  above 2^31-1 seconds are accepted instead of rejected, saturating only beyond
+  the duration range, and are then capped by `MaximumRetryAfter`. Vendor
   remaining/reset parsing is unchanged.
 - Explicit `Delays` are no longer jittered.
 - A failed exchange that policy does not retry, such as an unsafe `POST`
@@ -33,6 +34,10 @@ Behavior changes to review when adopting v3:
   before.
 - `MaximumElapsed` stops retries between exchanges; it is still not a deadline
   for the exchange itself.
+- Telemetry: replay, non-replayable-body and response-cleanup stops report
+  `failure` or `transport_error` instead of `retry_exhausted`, and
+  attempt-limit and elapsed-budget stops report `retry_exhausted` ahead of
+  cancellation, rate-limit and circuit outcomes.
 
 Update imports to `github.com/faustbrian/go-http-client/v3` and replace each
 removed identifier in the same change. Roll back by reverting the consumer

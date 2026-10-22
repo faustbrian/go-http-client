@@ -883,13 +883,13 @@ func TestRateLimitObserversShareCanonicalRetryAfterParsing(t *testing.T) {
 		defaultDelay   time.Duration
 		defaultPresent bool
 		headerDelay    time.Duration
-		saturated      bool
+		beyond31Bits   bool
 	}{
 		{name: "128-byte padded", retryAfter: strings.Repeat(" ", 127) + "1", defaultDelay: time.Second, defaultPresent: true, headerDelay: time.Second},
 		{name: "129-byte padded", retryAfter: strings.Repeat(" ", 128) + "1", headerDelay: 5 * time.Second},
 		{name: "zero", retryAfter: "0", defaultPresent: true},
 		{name: "past date", retryAfter: now.Add(-time.Minute).Format(http.TimeFormat), defaultPresent: true},
-		{name: "beyond 31 bits", retryAfter: "2147483648", defaultPresent: true, saturated: true},
+		{name: "beyond 31 bits", retryAfter: "2147483648", defaultPresent: true, beyond31Bits: true},
 		{name: "malformed", retryAfter: "soon", headerDelay: 5 * time.Second},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -901,12 +901,12 @@ func TestRateLimitObserversShareCanonicalRetryAfterParsing(t *testing.T) {
 			}}
 			delay, present, err := (retryAfterRateLimitObserver{}).Delay(response, now)
 			if err != nil || present != test.defaultPresent ||
-				(!test.saturated && delay != test.defaultDelay) || (test.saturated && delay < 2147483648*time.Second) {
+				(!test.beyond31Bits && delay != test.defaultDelay) || (test.beyond31Bits && delay < 2147483648*time.Second) {
 				t.Fatalf("default observer = %v, %v, %v", delay, present, err)
 			}
 			delay, present, err = header.Delay(response, now)
 			if err != nil || !present ||
-				(!test.saturated && delay != test.headerDelay) || (test.saturated && delay < 2147483648*time.Second) {
+				(!test.beyond31Bits && delay != test.headerDelay) || (test.beyond31Bits && delay < 2147483648*time.Second) {
 				t.Fatalf("header observer = %v, %v, %v", delay, present, err)
 			}
 		})

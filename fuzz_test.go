@@ -251,30 +251,45 @@ func FuzzRetryPolicy(fuzz *testing.F) {
 		if err != nil {
 			t.Fatalf("bounded retry options failed: %v", err)
 		}
-		request, requestErr := http.NewRequest(method, "https://api.example.test", nil)
-		if requestErr != nil {
-			return
-		}
+		chain := []Middleware{middleware}
 		if hasIdempotency {
-			ctx, keyErr := WithIdempotencyKey(request.Context(), "fuzz-key")
-			if keyErr == nil {
-				request = request.WithContext(ctx)
+			idempotency, keyErr := NewIdempotencyMiddleware(IdempotencyOptions{
+				Name: "idempotency", Layer: MiddlewareEndpoint,
+				Generator: IdentifierGeneratorFunc(func(context.Context) (GeneratedIdentifier, error) {
+					return GeneratedIdentifier{Value: "fuzz-key", EntropyBits: 128}, nil
+				}),
+			})
+			if keyErr != nil {
+				t.Fatal(keyErr)
 			}
+			chain = append(chain, idempotency...)
 		}
 		calls := 0
-		_, _ = middleware.around(request, func(*http.Request) (*http.Response, error) {
+		client, clientErr := New(Config{Middleware: chain, Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
 			calls++
 			header := http.Header{}
 			header["Retry-After"] = []string{retryAfter}
 			return &http.Response{StatusCode: status, Header: header, Body: http.NoBody}, nil
-		})
+		})})
+		if clientErr != nil {
+			t.Fatal(clientErr)
+		}
+		defer func() { _ = client.Close() }()
+		request, requestErr := http.NewRequest(method, "https://api.example.test", nil)
+		if requestErr != nil {
+			return
+		}
+		response, _ := client.Do(request)
+		if response != nil && response.Body != nil {
+			_ = response.Body.Close()
+		}
 		for _, delay := range clock.Delays() {
 			if delay < 0 || delay > time.Second {
 				t.Fatalf("retry delay escaped bounds: %s", delay)
 			}
 		}
-		if !retrySafeMethod(request.Method) && calls != 1 {
-			t.Fatalf("unsafe operation without package-applied key proof made %d calls", calls)
+		if !retrySafeMethod(request.Method) && (!unsafe || !hasIdempotency) && calls != 1 {
+			t.Fatalf("unsafe operation without opt-in and package-applied key proof made %d calls", calls)
 		}
 	})
 }

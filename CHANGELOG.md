@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Add `RetryOptions.Random` to inject the `go-retry/v3` random source used to
+  jitter exponential delays.
+
 ### Removed
 
 - Remove the local Retry-After parser, the retry backoff, jitter, budget and
@@ -21,10 +26,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Move the module to `github.com/faustbrian/go-http-client/v3`.
 - Treat Retry-After as a minimum wait capped by `MaximumRetryAfter`, ignore
-  values beyond 128 raw bytes and saturate oversized seconds, in retry and both
-  rate-limit observers. `MaximumDelay` and explicit delays must not exceed
+  values beyond 128 raw bytes and accept seconds beyond 31 bits, saturating
+  beyond the duration range, in retry and both rate-limit observers. `MaximumDelay` and explicit delays must not exceed
   `MaximumRetryAfter`, and explicit delays are no longer jittered.
 - Return the original failure for exchanges that retry policy does not repeat.
+- Report replay, non-replayable-body and response-cleanup stops as
+  `retry.PermanentError` with the `failure` or `transport_error` telemetry
+  outcome; attempt-limit and elapsed-budget stops keep `retry_exhausted`, which
+  now takes precedence over cancellation, rate-limit and circuit outcomes for
+  those errors.
+- Make `go-retry/v3` types (`retry.Random` and its terminal errors) part of the
+  public contract.
 
 ### Security
 
