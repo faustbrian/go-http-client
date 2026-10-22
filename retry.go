@@ -177,7 +177,7 @@ func resolveRetryOptions(options RetryOptions) (resolvedRetryOptions, error) {
 		Backoff: backoff, MaxAttempts: uint(options.MaximumAttempts),
 		MaxElapsed: maximumElapsed, MaxDelay: maximumRetryAfter,
 		Clock: scheduler, Sleeper: scheduler, Random: random,
-		Classifier: retry.RetryableClassifier(),
+		Classifier: retry.ClassifyFunc(classifyRetryOutcome),
 		// Budget and cancellation stops carry only their context cause; keeping
 		// the last attempt lets callers read the final HTTP status from history.
 		HistoryLimit: 1,
@@ -265,8 +265,9 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 		pending = nil
 		cause := retryCause(response, failure)
 		if cause == nil {
-			// Only a broken inner middleware returns neither a response nor an error.
-			cause = ErrInvalidMiddlewareResult
+			// Only a broken inner middleware returns neither a response nor an
+			// error; whether it sent the request is unknowable, so never replay it.
+			return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(ErrInvalidMiddlewareResult)
 		}
 		lastStatus = nil
 		if response != nil {
@@ -291,6 +292,17 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 	}
 
 	return result.Value, nil
+}
+
+// classifyRetryOutcome retries only the operation's own top-level retryable
+// wrapper. A retryable error nested in a failure chain, such as one returned by
+// an inner go-retry user, must not override this middleware's permanent stops.
+func classifyRetryOutcome(_ context.Context, err error) (retry.Classification, error) {
+	if _, ok := err.(*retry.RetryableError); ok {
+		return retry.ClassificationRetryable, nil
+	}
+
+	return retry.ClassificationPermanent, nil
 }
 
 // retryCause carries the response status and its first Retry-After value as a

@@ -633,6 +633,53 @@ func TestRetryCustomPolicyCannotReplayOneShotBody(t *testing.T) {
 	}
 }
 
+func TestRetryNestedRetryableFailureCannotReplayOneShotBody(t *testing.T) {
+	t.Parallel()
+
+	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+	middleware, err := NewRetryMiddleware(RetryOptions{
+		Name: "retry", MaximumAttempts: 3, Clock: clock,
+		Policy: RetryPolicyFunc(func(RetryAttempt) bool { return true }),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	client, err := New(Config{Middleware: []Middleware{middleware}, Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return nil, goretry.Retryable(errors.New("inner retry failure"))
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeTestClient(t, client)
+	request, _ := http.NewRequest(http.MethodPut, "https://api.example.test", &retryOneShotReader{Reader: strings.NewReader("body")})
+	_, err = client.Do(request)
+	if calls != 1 || len(clock.Delays()) != 0 || !errors.As(err, new(*goretry.PermanentError)) || errors.As(err, new(*MiddlewarePanicError)) {
+		t.Fatalf("nested retryable failure: calls %d, delays %v, err %v", calls, clock.Delays(), err)
+	}
+}
+
+func TestRetryStopsOnMissingExchangeResult(t *testing.T) {
+	t.Parallel()
+
+	middleware, err := NewRetryMiddleware(RetryOptions{
+		Name: "retry", MaximumAttempts: 3, Clock: &retryTestClock{now: time.Unix(1_700_000_000, 0)},
+		Policy: RetryPolicyFunc(func(RetryAttempt) bool { return true }),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	_, err = middleware.around(httptest.NewRequest(http.MethodGet, "https://api.example.test", nil), func(*http.Request) (*http.Response, error) {
+		calls++
+		return nil, nil
+	})
+	if calls != 1 || !errors.Is(err, ErrInvalidMiddlewareResult) || !errors.As(err, new(*goretry.PermanentError)) {
+		t.Fatalf("missing result: calls %d, err %v", calls, err)
+	}
+}
+
 func TestRetryReplayFailureKeepsLastStatus(t *testing.T) {
 	t.Parallel()
 
@@ -668,7 +715,7 @@ func TestRetryElapsedBudgetDoesNotCutSlowExchanges(t *testing.T) {
 	t.Parallel()
 
 	middleware, err := NewRetryMiddleware(RetryOptions{
-		Name: "retry", MaximumAttempts: 5, MaximumElapsed: 50 * time.Millisecond,
+		Name: "retry", MaximumAttempts: 5, MaximumElapsed: 300 * time.Millisecond,
 		BaseDelay: time.Millisecond, MaximumDelay: time.Millisecond,
 	})
 	if err != nil {
@@ -680,7 +727,7 @@ func TestRetryElapsedBudgetDoesNotCutSlowExchanges(t *testing.T) {
 		if calls == 1 {
 			return retryResponse(http.StatusTooManyRequests, "", new(bool)), nil
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(600 * time.Millisecond)
 		return retryResponse(http.StatusServiceUnavailable, "", new(bool)), nil
 	})})
 	if err != nil {
