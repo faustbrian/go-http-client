@@ -30,8 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   beyond the duration range, in retry and both rate-limit observers; the
   observers keep their own server-delay bound. `MaximumDelay` and explicit
   delays must not exceed `MaximumRetryAfter`, an unset `MaximumDelay` defaults
-  to the lower of 2s and `MaximumRetryAfter`, and explicit delays are no longer
-  jittered.
+  to the lower of 2s and `MaximumRetryAfter`, an unset `BaseDelay` to the lower
+  of 100ms and `MaximumDelay`, and explicit delays are no longer jittered.
+- Report a custom retry clock that moves backwards as `ErrRetryClockRegressed`,
+  stopping before the next wait or exchange, with the `retry_exhausted`
+  telemetry outcome.
 - Return the original failure for exchanges that retry policy does not repeat.
 - Report failed exchanges that policy does not retry, and replay,
   non-replayable-body, response-cleanup and custom `RetryClock.Wait` stops, with the `failure` or

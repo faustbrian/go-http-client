@@ -100,10 +100,13 @@ When a retryable exchange cannot continue, the middleware returns the
 `go-retry/v3` terminal error: `ExhaustedError` for the attempt limit,
 `BudgetError` for the elapsed budget, `PermanentError` for replayability or
 body-lifecycle failures, and `ContextError` for cancellation during a wait or
-between attempts. Cancellation during an exchange or response drain is a failed
-exchange the policy does not retry, so it returns the original failure, which
-still matches `context.Canceled`. A custom clock that reads earlier than the
-first exchange stops with an elapsed `BudgetError` before any replay.
+between attempts. Under the default policy, a transport failure caused by
+cancellation during an exchange is not retried, so it returns the original
+failure, which still matches `context.Canceled`; cancellation while draining a
+retryable response stops with a `PermanentError` that carries the status. A
+custom clock that reads earlier than the first exchange stops with a
+`PermanentError` matching `ErrRetryClockRegressed` and carrying the status,
+before the next wait or exchange.
 `ExhaustedError`,
 `BudgetError` and `ContextError` expose `Result()` with attempt counts and
 elapsed time. For attempt-limit, replay and body-lifecycle stops the last HTTP
@@ -114,7 +117,7 @@ custom `RetryClock.Wait` that fails without a context error stops with a
 completed wait also matches `context.DeadlineExceeded` through `errors.Is`. Under
 the default policy one found before the wait does not, but a custom policy that
 retries a deadline failure carries that failure, so test for `BudgetError`
-before treating a deadline as the caller's own. `Outcome()` on these errors
+before treating a deadline as the caller's own. `ContextError.Outcome()`
 describes whether this middleware dispatched a retry, not whether the server
 applied the request. None renders transport text,
 URLs, headers, keys, or payloads. A failed exchange that policy does not retry

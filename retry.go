@@ -17,6 +17,10 @@ import (
 // ErrInvalidRetryPolicy indicates invalid retry configuration or behavior.
 var ErrInvalidRetryPolicy = errors.New("invalid HTTP retry policy")
 
+// ErrRetryClockRegressed reports that a custom RetryClock read earlier than the
+// first exchange, so the elapsed budget can no longer be measured.
+var ErrRetryClockRegressed = errors.New("HTTP retry clock moved backwards")
+
 const (
 	defaultRetryBaseDelay      = 100 * time.Millisecond
 	defaultRetryMaximumDelay   = 2 * time.Second
@@ -90,10 +94,11 @@ type RetryOptions struct {
 	// MaximumRetryAfter and cannot be combined with BaseDelay or MaximumDelay.
 	// Explicit delays are not jittered.
 	Delays []time.Duration
-	// BaseDelay starts exponential backoff; zero selects 100 milliseconds.
+	// BaseDelay starts exponential backoff; zero selects the lower of 100
+	// milliseconds and MaximumDelay.
 	BaseDelay time.Duration
-	// MaximumDelay caps exponential delay before jitter; zero selects two
-	// seconds. It must not exceed MaximumRetryAfter.
+	// MaximumDelay caps exponential delay before jitter; zero selects the lower
+	// of two seconds and MaximumRetryAfter. It must not exceed MaximumRetryAfter.
 	MaximumDelay time.Duration
 	// MaximumRetryAfter caps every selected delay, including a server
 	// Retry-After hint; zero selects 30 seconds.
@@ -205,15 +210,15 @@ func resolveRetryBackoff(options RetryOptions, maximumRetryAfter time.Duration) 
 
 		return delays, nil
 	}
-	baseDelay := options.BaseDelay
-	if baseDelay == 0 {
-		baseDelay = defaultRetryBaseDelay
-	}
+	// Unset delays follow a lower MaximumRetryAfter so that lowering only the
+	// overall cap stays a valid configuration.
 	maximumDelay := options.MaximumDelay
 	if maximumDelay == 0 {
-		// An unset MaximumDelay follows a lower MaximumRetryAfter so that only
-		// lowering the overall cap stays a valid configuration.
 		maximumDelay = min(defaultRetryMaximumDelay, maximumRetryAfter)
+	}
+	baseDelay := options.BaseDelay
+	if baseDelay == 0 {
+		baseDelay = min(defaultRetryBaseDelay, maximumDelay)
 	}
 	if baseDelay < 0 || maximumDelay < baseDelay || maximumDelay > maximumRetryAfter {
 		return nil, fmt.Errorf("%w: retry duration bounds are invalid", ErrInvalidRetryPolicy)
@@ -238,11 +243,11 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 		current := request
 		if attempt > 0 {
 			// go-retry clamps a negative elapsed time to zero, so a custom clock
-			// that moves backwards would never exhaust MaximumElapsed. Treat it
-			// as an exhausted elapsed budget, as v2 did, instead of replaying.
+			// that moves backwards would never exhaust MaximumElapsed. Stop, as
+			// v2 did, instead of replaying.
 			if options.clock.Now().Before(start) {
 				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown},
-					retry.Permanent(errors.Join(&retry.BudgetError{Kind: retry.BudgetElapsed}, lastStatus))
+					retry.Permanent(errors.Join(lastStatus, ErrRetryClockRegressed))
 			}
 			replayed, err := replayRequest(request)
 			if err != nil {
@@ -290,6 +295,9 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 		}
 		if !bodyReplayable {
 			return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(cause)
+		}
+		if options.clock.Now().Before(start) {
+			return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(errors.Join(cause, ErrRetryClockRegressed))
 		}
 
 		return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Retryable(cause)

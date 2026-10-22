@@ -916,45 +916,63 @@ func TestRetryDrainsAndClosesBeforeWaiting(t *testing.T) {
 	}
 }
 
-func TestRetryBackwardClockStopsAsElapsedBudget(t *testing.T) {
+func TestRetryBackwardClockStopsBeforeAnotherExchange(t *testing.T) {
 	t.Parallel()
 
-	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
-	clock.wait = func(context.Context, time.Duration) error {
-		clock.mu.Lock()
-		clock.now = clock.now.Add(-time.Hour)
-		clock.mu.Unlock()
-
-		return nil
-	}
-	_, calls, err := runRetry(t, RetryOptions{MaximumAttempts: 5, Clock: clock, Random: zeroRetryRandom{}}, func(int) (*http.Response, error) {
-		return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
-	})
-	var budget *goretry.BudgetError
-	var status interface{ StatusCode() int }
-	if calls != 1 || !errors.As(err, &budget) || budget.Kind != goretry.BudgetElapsed ||
-		!errors.As(err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
-		t.Fatalf("backward clock = %v, calls %d", err, calls)
-	}
-	if outcome := telemetryOutcome(nil, err); outcome != TelemetryOutcomeRetryFailure {
-		t.Fatalf("backward clock telemetry = %q", outcome)
+	for _, test := range []struct {
+		name       string
+		duringWait bool
+		wantDelays int
+	}{
+		{name: "during exchange", wantDelays: 0},
+		{name: "during wait", duringWait: true, wantDelays: 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+			stepBack := func() {
+				clock.mu.Lock()
+				clock.now = clock.now.Add(-time.Hour)
+				clock.mu.Unlock()
+			}
+			if test.duringWait {
+				clock.wait = func(context.Context, time.Duration) error { stepBack(); return nil }
+			}
+			_, calls, err := runRetry(t, RetryOptions{MaximumAttempts: 5, Clock: clock, Random: zeroRetryRandom{}}, func(int) (*http.Response, error) {
+				if !test.duringWait {
+					stepBack()
+				}
+				return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
+			})
+			var permanent *goretry.PermanentError
+			var status interface{ StatusCode() int }
+			if calls != 1 || len(clock.Delays()) != test.wantDelays || !errors.As(err, &permanent) || !errors.Is(err, ErrRetryClockRegressed) ||
+				!errors.As(err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
+				t.Fatalf("backward clock = %v, calls %d, delays %v", err, calls, clock.Delays())
+			}
+			if outcome := telemetryOutcome(nil, err); outcome != TelemetryOutcomeRetryFailure {
+				t.Fatalf("backward clock telemetry = %q", outcome)
+			}
+		})
 	}
 }
 
 func TestRetryDefaultMaximumDelayFollowsLowerRetryAfterCap(t *testing.T) {
 	t.Parallel()
 
-	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
-	_, calls, err := runRetry(t, RetryOptions{MaximumAttempts: 3, MaximumRetryAfter: 500 * time.Millisecond, Clock: clock, Random: maxRetryRandom{}}, func(int) (*http.Response, error) {
-		return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
-	})
-	var exhausted *goretry.ExhaustedError
-	if calls != 3 || !errors.As(err, &exhausted) {
-		t.Fatalf("lowered cap = %v, calls %d", err, calls)
-	}
-	for _, delay := range clock.Delays() {
-		if delay > 500*time.Millisecond {
-			t.Fatalf("delay %v exceeds the lowered cap", delay)
+	for _, maximumRetryAfter := range []time.Duration{500 * time.Millisecond, 50 * time.Millisecond} {
+		clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+		_, calls, err := runRetry(t, RetryOptions{MaximumAttempts: 3, MaximumRetryAfter: maximumRetryAfter, Clock: clock, Random: maxRetryRandom{}}, func(int) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
+		})
+		var exhausted *goretry.ExhaustedError
+		if calls != 3 || !errors.As(err, &exhausted) {
+			t.Fatalf("cap %v = %v, calls %d", maximumRetryAfter, err, calls)
+		}
+		for _, delay := range clock.Delays() {
+			if delay > maximumRetryAfter {
+				t.Fatalf("delay %v exceeds the lowered cap %v", delay, maximumRetryAfter)
+			}
 		}
 	}
 }
@@ -1141,6 +1159,13 @@ func TestRetryCancellationStopsStalledDrainAndWait(t *testing.T) {
 			_, err = client.Do(request)
 			if !errors.Is(err, context.Canceled) || calls != 1 || time.Since(started) > time.Second {
 				t.Fatalf("cancellation = %v after %v with %d calls", err, time.Since(started), calls)
+			}
+			// A cancelled drain is a body-lifecycle stop that keeps the status;
+			// a cancelled wait is a context stop.
+			var status interface{ StatusCode() int }
+			if path == "/stalled" && (!errors.As(err, new(*goretry.PermanentError)) || !errors.As(err, &status) || status.StatusCode() != http.StatusServiceUnavailable) ||
+				path == "/hint" && !errors.As(err, new(*goretry.ContextError)) {
+				t.Fatalf("%s cancellation error = %v", path, err)
 			}
 		})
 	}

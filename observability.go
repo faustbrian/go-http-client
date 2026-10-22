@@ -340,7 +340,7 @@ func telemetryOutcome(response *http.Response, failure error) TelemetryOutcome {
 	switch {
 	// Retry budget errors can wrap a deadline, so they are classified before
 	// generic cancellation.
-	case errors.As(failure, &exhausted), errors.As(failure, &budget):
+	case errors.As(failure, &exhausted), errors.As(failure, &budget), errors.Is(failure, ErrRetryClockRegressed):
 		return TelemetryOutcomeRetryFailure
 	case errors.Is(failure, context.Canceled), errors.Is(failure, context.DeadlineExceeded):
 		return TelemetryOutcomeCanceled
