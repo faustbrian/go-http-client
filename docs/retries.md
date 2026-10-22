@@ -67,13 +67,18 @@ consequences of returning true.
 ## Delay and `Retry-After`
 
 Absent usable server direction, delay uses the configured explicit sequence or
-grows exponentially from `BaseDelay` to `MaximumDelay`. Cryptographic full
-jitter selects a value from zero through the current bound to spread concurrent
-clients. `RetryJitter` is injectable for deterministic tests.
+grows exponentially from `BaseDelay` to `MaximumDelay`. Full jitter from
+`github.com/faustbrian/go-retry/v3` selects a value from zero through the
+current exponential bound to spread concurrent clients; explicit delays are
+not jittered. The default random source is seeded from `crypto/rand` per
+middleware; inject `RetryOptions.Random` for deterministic tests.
 
-`Retry-After` accepts delta seconds and HTTP dates. A valid value replaces
-local backoff but is clamped to `MaximumRetryAfter`. Malformed values fall back
-to exponential jitter; past dates mean no additional delay. A prospective wait
+`Retry-After` is parsed by `go-retry/v3/adapters/http.ParseRetryAfter`, which
+accepts delta seconds and HTTP dates within a 128-byte raw bound and saturates
+oversized seconds. A valid value is a minimum wait: it lengthens a shorter
+backoff but never shortens it. Every delay, including the hint, is capped by
+`MaximumRetryAfter`, which must be at least `MaximumDelay` and every explicit
+delay. Malformed or oversized values are treated as absent. A prospective wait
 that would exceed `MaximumElapsed` is never started.
 
 Every wait uses `RetryClock.Wait` with the operation context. The default uses
@@ -91,11 +96,15 @@ Each replay calls the original request's `GetBody` and installs an independent
 reader. A non-replayable stream never receives a second physical attempt.
 Redirect replay remains under `net/http`; retry does not weaken its rules.
 
-When a retryable exchange cannot continue because attempts, elapsed time,
-replayability, delay, or body lifecycle is exhausted, the middleware returns
-`RetryExhaustedError`. It exposes attempts, elapsed time, final status, and an
-unwrap-able cause without rendering transport text, URLs, headers, keys, or
-payloads. Non-retryable HTTP responses remain ordinary `http.Response` values.
+When a retryable exchange cannot continue, the middleware returns the
+`go-retry/v3` terminal error: `ExhaustedError` for the attempt limit,
+`BudgetError` for the elapsed budget, `PermanentError` for replayability or
+body-lifecycle failures, and `ContextError` for cancellation. Their metadata
+reports attempts and elapsed time; the last HTTP status is reachable through
+`errors.As` to a value with `StatusCode() int`. None renders transport text,
+URLs, headers, keys, or payloads. A failed exchange that policy does not retry
+returns its original error, and non-retryable HTTP responses remain ordinary
+`http.Response` values.
 
 ## Operation composition
 

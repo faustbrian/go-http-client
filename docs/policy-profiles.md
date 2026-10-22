@@ -54,9 +54,6 @@ Resolution always uses this precedence:
 2. client overrides
 3. request overrides
 
-The legacy `Config.Timeout` field is treated as a client override and takes
-precedence over `Config.Policy.OperationTimeout` when both are supplied.
-
 ## Inspection and provenance
 
 `Client.InspectPolicy(request)` resolves a request without executing it.

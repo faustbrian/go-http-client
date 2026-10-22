@@ -12,7 +12,7 @@ The principal families are:
 | --- | --- |
 | Client and transport | `ErrClientClosed`, `ErrNilRequest`, `TransportError` |
 | Middleware | `ErrInvalidMiddlewareResult`, `MiddlewareExecutionError`, `MiddlewarePanicError` |
-| Admission and resilience | `RateLimitError`, `CircuitBreakerError`, `RetryExhaustedError` |
+| Admission and resilience | `RateLimitError`, `CircuitBreakerError`, `go-retry/v3` terminal errors |
 | HTTP status | `ErrHTTPStatus`, `HTTPStatusError` |
 | Decode and lifecycle | `ResponseDecodeError`, `ErrResponseDecoderPanic`, `ResponseBodyError`, `ResponseLimitError`, `ResponseLengthError` |
 | Streaming and files | `TransferError`, `ErrTransferProgressPanic`, `RangeError`, `CompressionError`, `FileTransferError` |
@@ -29,13 +29,14 @@ than comparing message text:
 
 ```go
 var status *httpclient.HTTPStatusError
+var exhausted *retry.ExhaustedError
 switch {
 case errors.As(err, &status):
 	// Use status.StatusCode, status.VendorCode, and status.Retryable.
 case errors.Is(err, context.Canceled):
 	// Caller cancellation, not a dependency failure.
-case errors.Is(err, httpclient.ErrRetryExhausted):
-	// Inspect RetryExhaustedError for bounded attempt metadata.
+case errors.As(err, &exhausted):
+	// exhausted.Result() reports bounded attempt metadata.
 }
 ```
 

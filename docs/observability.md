@@ -20,9 +20,7 @@ stable across the operation; attempt numbers increase from one.
 `BeginTelemetryObserver.Begin` may return a derived context containing a span.
 `Finish` receives that same context and a closed outcome category. Configure it
 through `TelemetryOptions.BeginObserver`. A literal nil interface is omitted;
-a typed-nil observer is invalid. `Observer` retains the released
-`TelemetryObserver.Start` contract for existing integrations, but it conflicts
-with `BeginObserver` when both interfaces are non-nil. Observer or propagator
+a typed-nil observer is invalid. Observer or propagator
 panics are contained and cannot fail the HTTP operation.
 
 `TelemetryPropagator.Inject` receives only a cloned physical-attempt header.

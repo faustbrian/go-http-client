@@ -6,7 +6,7 @@ Every exported identifier is documented at its declaration and is available
 through standard Go documentation:
 
 ```console
-go doc -all github.com/faustbrian/go-http-client/v2
+go doc -all github.com/faustbrian/go-http-client/v3
 ```
 
 The CI `docs` gate verifies that complete generated reference. The stable API
@@ -26,7 +26,7 @@ evidence, findings, and release gates.
 | Responses and transfers | `ReadResponseBytes`, `ReadOptions`, status classification, typed decoding, drain, compression, range, copy, file, and resume APIs |
 | Scope and profiles | `PolicyScope`, resource keys, built-in profiles, overrides, resolved policy and provenance |
 | Egress and TLS | `EgressPolicy`, `TLSPolicy`, options, typed denial and pin errors |
-| Observability | `BeginTelemetryObserver`, legacy `TelemetryObserver`, propagator ports, events, W3C context, metric labels, and slog adapter |
+| Observability | `BeginTelemetryObserver`, propagator ports, events, W3C context, metric labels, and slog adapter |
 | Testing | scripted replay, sanitized recorder, fixture schema, persistence, migrations, and failure categories |
 
 Sentinel errors are compatibility contracts and are documented beside their

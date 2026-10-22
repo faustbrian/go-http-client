@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	httpclient "github.com/faustbrian/go-http-client/v2"
+	httpclient "github.com/faustbrian/go-http-client/v3"
 )
 
 func TestReadResponseBytesJoinsCallerCancellationAndClosesManagedBody(t *testing.T) {
@@ -25,7 +25,8 @@ func TestReadResponseBytesJoinsCallerCancellationAndClosesManagedBody(t *testing
 	t.Cleanup(server.Close)
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	t.Cleanup(cancel)
-	client, err := httpclient.New(httpclient.Config{Timeout: 3 * time.Second})
+	timeout := 3 * time.Second
+	client, err := httpclient.New(httpclient.Config{Policy: httpclient.PolicyOverrides{OperationTimeout: &timeout}})
 	if err != nil {
 		t.Fatal(err)
 	}

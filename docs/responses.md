@@ -60,9 +60,8 @@ The bound limits payload bytes, not the extra memory used by buffer growth.
 The caller must not concurrently mutate the response or its body.
 
 Close errors are returned as `ResponseBodyError` without rendering their cause;
-a close-only failure can accompany the complete body. `IgnoreCloseError` is
-an explicit compatibility policy that still closes the body but suppresses
-only that final error. It never suppresses read or limit failures. Unwrapped
+a close-only failure can accompany the complete body, and callers decide
+whether that failure matters for their operation. Unwrapped
 causes and the returned raw bytes may contain sensitive data and remain the
 integration's responsibility. Reads and close are cooperative: use the body
 from a request with an appropriate context and timeout, rather than assuming

@@ -27,7 +27,7 @@ func TestCircuitBreakerWrapsOneLogicalOperationAcrossRetries(t *testing.T) {
 	retry, err := NewRetryMiddleware(RetryOptions{
 		Name: "vendor-retry", MaximumAttempts: 2,
 		Clock:  &rateLimitTestClock{now: time.Unix(1_700_000_000, 0)},
-		Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+		Random: zeroRetryRandom{},
 	})
 	if err != nil {
 		t.Fatalf("construct retry middleware: %v", err)
@@ -446,7 +446,7 @@ func TestRateLimitAttemptBoundaryRequiresOperationState(t *testing.T) {
 	retry, err := NewRetryMiddleware(RetryOptions{
 		Name: "retry", MaximumAttempts: 2,
 		Clock:  &rateLimitTestClock{now: limiter.now},
-		Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+		Random: zeroRetryRandom{},
 	})
 	if err != nil {
 		t.Fatalf("construct retry: %v", err)

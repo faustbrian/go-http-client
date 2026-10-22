@@ -306,7 +306,7 @@
         "Apply explicit package policy at the owned boundary"
       ],
       "peer_behavior": "Maintained implementations expose materially different policy defaults for this boundary.",
-      "selected_behavior": "Parse Retry-After delay seconds or HTTP dates, handle malformed and past values deterministically, and clamp all waits.",
+      "selected_behavior": "Parse Retry-After delay seconds or HTTP dates with the shared go-retry/v3 parser, treat malformed or oversized values as absent and past values as zero, use hints as minimum retry waits, and clamp all waits.",
       "rationale": "The selected behavior makes compatibility, trust, lifecycle, and failure semantics explicit.",
       "security_consequences": "Untrusted protocol input is handled only within the documented validation and trust policy.",
       "resource_consequences": "Processing, retained state, waits, and stream ownership remain within documented finite bounds.",
@@ -314,7 +314,7 @@
       "wire_consequences": "Wire-visible behavior follows the selected policy and cited executable evidence.",
       "executable_evidence": [
         "TestRetryUsesBoundedRetryAfterAndClosesDiscardedResponses",
-        "TestRetryDelayExactBoundaries",
+        "TestRetryAfterSelectsDelayWithinCaps",
         "TestRateLimitObservationExactBoundaries",
         "TestRateLimitHeaderObservationMatrix"
       ],

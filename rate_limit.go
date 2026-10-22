@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	retryhttp "github.com/faustbrian/go-retry/v3/adapters/http"
 )
 
 var (
@@ -578,7 +580,7 @@ func (retryAfterRateLimitObserver) Delay(response *http.Response, now time.Time)
 	if response == nil {
 		return 0, false, nil
 	}
-	delay, ok := parseRetryAfter(response.Header.Get("Retry-After"), now)
+	delay, ok := retryhttp.ParseRetryAfter(response.Header.Get("Retry-After"), now)
 
 	return delay, ok, nil
 }
@@ -643,7 +645,7 @@ func (observer headerRateLimitObserver) Delay(
 	if response == nil {
 		return 0, false, nil
 	}
-	if delay, ok := parseRetryAfter(response.Header.Get("Retry-After"), now); ok {
+	if delay, ok := retryhttp.ParseRetryAfter(response.Header.Get("Retry-After"), now); ok {
 		return delay, true, nil
 	}
 	remaining := strings.TrimSpace(response.Header.Get(observer.remaining))

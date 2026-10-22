@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-risk_selected-blue)](CONTRIBUTING.md#verification)
 [![Mutation](https://img.shields.io/badge/mutation-optional_local%2Fselected_scheduled-blue)](CONTRIBUTING.md#verification)
 [![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
-[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-http-client/v2.svg)](https://pkg.go.dev/github.com/faustbrian/go-http-client/v2)
+[![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-http-client/v3.svg)](https://pkg.go.dev/github.com/faustbrian/go-http-client/v3)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-http-client?sort=semver)](https://github.com/faustbrian/go-http-client/releases)
 [![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -22,10 +22,13 @@ Vendor request and response models remain application-owned.
 
 ## Status and lifecycle
 
-The root v2 release line provides finite credential admission. The minimum
-supported Go version is 1.27.0, and development remains active. See
+The root v3 release line keeps one owner per mechanism and schedules retries
+with `github.com/faustbrian/go-retry/v3`; see the
+[migration guide](docs/migration.md#v2-to-v3-clean-replacement). The minimum
+supported Go version is 1.27.0; build with Go 1.27.3 or newer, which fixes
+GO-2026-6809 in `crypto/x509`. Development remains active. See
 [published releases](https://github.com/faustbrian/go-http-client/releases)
-for available versions; historical v1 remains available on its original path.
+for available versions; earlier majors remain available on their original paths.
 It contains one public package and no independently versioned subpackages.
 
 Construct a `Client` with `New`, share it across goroutines, and call `Close`
@@ -35,10 +38,10 @@ response. Consuming response helpers take and close body ownership.
 
 ## Installation
 
-Use the root v2 release's major-qualified module and import path:
+Use the root v3 release's major-qualified module and import path:
 
 ```sh
-go get github.com/faustbrian/go-http-client/v2@v2.0.0
+go get github.com/faustbrian/go-http-client/v3@v3.0.0
 ```
 
 ## Quick start
@@ -51,7 +54,7 @@ import (
 	"log"
 	"net/http"
 
-	httpclient "github.com/faustbrian/go-http-client/v2"
+	httpclient "github.com/faustbrian/go-http-client/v3"
 )
 
 func main() {
@@ -94,7 +97,7 @@ build owns its URL, headers, query values, and body state.
 
 | Import path | Package | Use |
 | --- | --- | --- |
-| `github.com/faustbrian/go-http-client/v2` | `httpclient` | Client lifecycle, immutable requests and bodies, middleware, authentication, retries and admission policies, caching, pagination, bounded response handling, transfers, egress and TLS policy, telemetry, and test fixtures. |
+| `github.com/faustbrian/go-http-client/v3` | `httpclient` | Client lifecycle, immutable requests and bodies, middleware, authentication, retries and admission policies, caching, pagination, bounded response handling, transfers, egress and TLS policy, telemetry, and test fixtures. |
 
 There are no public subpackages or adapter modules. Compose these companions
 only at their distinct ownership boundaries:

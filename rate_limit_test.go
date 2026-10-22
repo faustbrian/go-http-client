@@ -739,7 +739,7 @@ func TestRateLimitRunsOncePerRetryAttemptBeforeAuthentication(t *testing.T) {
 	retry, err := NewRetryMiddleware(RetryOptions{
 		Name: "vendor-retry", MaximumAttempts: 2,
 		Clock:  &rateLimitTestClock{now: limiter.now},
-		Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+		Random: zeroRetryRandom{},
 	})
 	if err != nil {
 		t.Fatalf("construct retry middleware: %v", err)
@@ -864,4 +864,55 @@ type rateLimitTestObserver struct{}
 
 func (*rateLimitTestObserver) Delay(*http.Response, time.Time) (time.Duration, bool, error) {
 	return 0, false, nil
+}
+
+// TestRateLimitObserversShareCanonicalRetryAfterParsing covers both observers:
+// valid zero and past dates are present and win over vendor reset fallback,
+// while values past the 128-byte raw bound or malformed values are absent.
+func TestRateLimitObserversShareCanonicalRetryAfterParsing(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
+	header, err := NewHeaderRateLimitObserver(HeaderRateLimitOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name           string
+		retryAfter     string
+		defaultDelay   time.Duration
+		defaultPresent bool
+		headerDelay    time.Duration
+		saturated      bool
+	}{
+		{name: "128-byte padded", retryAfter: strings.Repeat(" ", 127) + "1", defaultDelay: time.Second, defaultPresent: true, headerDelay: time.Second},
+		{name: "129-byte padded", retryAfter: strings.Repeat(" ", 128) + "1", headerDelay: 5 * time.Second},
+		{name: "zero", retryAfter: "0", defaultPresent: true},
+		{name: "past date", retryAfter: now.Add(-time.Minute).Format(http.TimeFormat), defaultPresent: true},
+		{name: "beyond 31 bits", retryAfter: "2147483648", defaultPresent: true, saturated: true},
+		{name: "malformed", retryAfter: "soon", headerDelay: 5 * time.Second},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			response := &http.Response{Header: http.Header{
+				"Retry-After":         {test.retryAfter},
+				"Ratelimit-Remaining": {"0"},
+				"Ratelimit-Reset":     {"5"},
+			}}
+			delay, present, err := (retryAfterRateLimitObserver{}).Delay(response, now)
+			if err != nil || present != test.defaultPresent ||
+				(!test.saturated && delay != test.defaultDelay) || (test.saturated && delay < 2147483648*time.Second) {
+				t.Fatalf("default observer = %v, %v, %v", delay, present, err)
+			}
+			delay, present, err = header.Delay(response, now)
+			if err != nil || !present ||
+				(!test.saturated && delay != test.headerDelay) || (test.saturated && delay < 2147483648*time.Second) {
+				t.Fatalf("header observer = %v, %v, %v", delay, present, err)
+			}
+		})
+	}
+	reset := &http.Response{Header: http.Header{"Ratelimit-Remaining": {"0"}, "Ratelimit-Reset": {"2147483648"}}}
+	if delay, present, _ := header.Delay(reset, now); present {
+		t.Fatalf("vendor reset keeps its own 31-bit contract: %v", delay)
+	}
 }

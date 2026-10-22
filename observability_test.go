@@ -12,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	retry "github.com/faustbrian/go-retry/v3"
 )
 
 func TestTelemetryModelsOneOperationAndNumberedRetryAttempts(t *testing.T) {
@@ -20,7 +22,7 @@ func TestTelemetryModelsOneOperationAndNumberedRetryAttempts(t *testing.T) {
 	retry, err := NewRetryMiddleware(RetryOptions{
 		Name: "retry", MaximumAttempts: 2,
 		Clock:  telemetryTestClock{},
-		Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+		Random: zeroRetryRandom{},
 	})
 	if err != nil {
 		t.Fatalf("construct retry middleware: %v", err)
@@ -31,7 +33,7 @@ func TestTelemetryModelsOneOperationAndNumberedRetryAttempts(t *testing.T) {
 			return GeneratedIdentifier{Value: "operation-1", EntropyBits: 128}, nil
 		}),
 		Telemetry: &TelemetryOptions{
-			Observer: observer, Propagator: propagator,
+			BeginObserver: observer, Propagator: propagator,
 			BaggageAllowlist: []string{"safe-key"},
 		},
 		Middleware: []Middleware{retry},
@@ -104,7 +106,7 @@ func TestTelemetryModelsOneOperationAndNumberedRetryAttempts(t *testing.T) {
 func TestTelemetryObserverAndPropagatorCanBeAdoptedIndependently(t *testing.T) {
 	observer := &telemetryTestObserver{}
 	observerClient, err := New(Config{
-		Telemetry: &TelemetryOptions{Observer: observer},
+		Telemetry: &TelemetryOptions{BeginObserver: observer},
 		Transport: telemetryNoContentTransport(),
 	})
 	if err != nil {
@@ -145,7 +147,7 @@ func TestTelemetryStripsTrustBoundaryHeadersAndFiltersBaggage(t *testing.T) {
 	var captured []http.Header
 	client, err := New(Config{
 		Telemetry: &TelemetryOptions{
-			Observer:         &telemetryTestObserver{},
+			BeginObserver:    &telemetryTestObserver{},
 			BaggageAllowlist: []string{"safe"},
 			SensitiveHeaders: []string{"X-Vendor-Secret"},
 		},
@@ -223,7 +225,7 @@ func TestTelemetryOutcomeAndCacheCategoriesAreBounded(t *testing.T) {
 		{"rate capacity", nil, ErrRateLimitCapacity, TelemetryOutcomeRateLimited, "", TelemetryCacheNone},
 		{"rate wait", nil, ErrRateLimitWaitExceeded, TelemetryOutcomeRateLimited, "", TelemetryCacheNone},
 		{"circuit", nil, ErrCircuitRejected, TelemetryOutcomeCircuitOpen, "", TelemetryCacheNone},
-		{"retry", nil, ErrRetryExhausted, TelemetryOutcomeRetryFailure, "", TelemetryCacheNone},
+		{"retry", nil, &retry.ExhaustedError{}, TelemetryOutcomeRetryFailure, "", TelemetryCacheNone},
 		{"transport", nil, transportFailure, TelemetryOutcomeTransport, "", TelemetryCacheNone},
 		{"failure", nil, errors.New("private vendor detail"), TelemetryOutcomeFailure, "", TelemetryCacheNone},
 	} {
@@ -249,19 +251,19 @@ func TestTelemetryPolicyValidationAndObserverIsolation(t *testing.T) {
 	var nilPropagator *telemetryTestPropagator
 	for _, options := range []*TelemetryOptions{
 		{},
-		{Observer: nilObserver},
+		{BeginObserver: nilObserver},
 		{Propagator: nilPropagator},
-		{Observer: &telemetryTestObserver{}, CorrelationHeader: "bad header"},
-		{Observer: &telemetryTestObserver{}, BaggageAllowlist: []string{""}},
-		{Observer: &telemetryTestObserver{}, BaggageAllowlist: []string{"bad=name"}},
-		{Observer: &telemetryTestObserver{}, BaggageAllowlist: []string{`bad"name`}},
-		{Observer: &telemetryTestObserver{}, SensitiveHeaders: []string{"bad header"}},
+		{BeginObserver: &telemetryTestObserver{}, CorrelationHeader: "bad header"},
+		{BeginObserver: &telemetryTestObserver{}, BaggageAllowlist: []string{""}},
+		{BeginObserver: &telemetryTestObserver{}, BaggageAllowlist: []string{"bad=name"}},
+		{BeginObserver: &telemetryTestObserver{}, BaggageAllowlist: []string{`bad"name`}},
+		{BeginObserver: &telemetryTestObserver{}, SensitiveHeaders: []string{"bad header"}},
 	} {
 		if _, err := New(Config{Telemetry: options}); !errors.Is(err, ErrInvalidTelemetry) {
 			t.Fatalf("invalid telemetry %#v error = %v", options, err)
 		}
 	}
-	middleware, err := newTelemetryMiddleware(&TelemetryOptions{Observer: &telemetryTestObserver{}})
+	middleware, err := newTelemetryMiddleware(&TelemetryOptions{BeginObserver: &telemetryTestObserver{}})
 	if err != nil {
 		t.Fatalf("construct telemetry middleware: %v", err)
 	}
@@ -274,7 +276,7 @@ func TestTelemetryPolicyValidationAndObserverIsolation(t *testing.T) {
 	}
 	observer := &telemetryBoundaryObserver{panicStart: true, panicFinish: true}
 	client, err := New(Config{
-		Telemetry: &TelemetryOptions{Observer: observer},
+		Telemetry: &TelemetryOptions{BeginObserver: observer},
 		Transport: telemetryNoContentTransport(),
 	})
 	if err != nil {
@@ -304,16 +306,7 @@ func TestBeginTelemetryObserverValidation(t *testing.T) {
 		t.Fatalf("typed nil begin observer error = %v", err)
 	}
 
-	legacy := &telemetryTestObserver{}
-	begin := &telemetryBeginObserver{}
-	middleware, err := newTelemetryMiddleware(&TelemetryOptions{
-		Observer: legacy, BeginObserver: begin,
-	})
-	if !errors.Is(err, ErrInvalidTelemetry) || middleware != nil {
-		t.Fatalf("conflicting observers = %#v, %v", middleware, err)
-	}
-
-	if middleware, err = newTelemetryMiddleware(&TelemetryOptions{}); !errors.Is(err, ErrInvalidTelemetry) || middleware != nil {
+	if middleware, err := newTelemetryMiddleware(&TelemetryOptions{}); !errors.Is(err, ErrInvalidTelemetry) || middleware != nil {
 		t.Fatalf("non-nil empty options = %#v, %v", middleware, err)
 	}
 }
@@ -448,10 +441,6 @@ func TestSlogTelemetryObserverLogsOnlySafeFixedFields(t *testing.T) {
 		Profile: PolicyProfileWebhookDeliveryV1, Cache: TelemetryCacheNone,
 	}
 	ctx := observer.Begin(context.Background(), start)
-	legacyCtx := observer.Start(context.Background(), start)
-	if legacyCtx == nil {
-		t.Fatal("legacy Start returned a nil context")
-	}
 	observer.Finish(ctx, event)
 	logged := output.String()
 	for _, want := range []string{
@@ -463,8 +452,8 @@ func TestSlogTelemetryObserverLogsOnlySafeFixedFields(t *testing.T) {
 			t.Fatalf("slog output missing %s: %s", want, logged)
 		}
 	}
-	if count := strings.Count(logged, `"phase":"start"`); count != 2 {
-		t.Fatalf("begin and delegated start log count = %d, want 2: %s", count, logged)
+	if count := strings.Count(logged, `"phase":"start"`); count != 1 {
+		t.Fatalf("begin log count = %d, want 1: %s", count, logged)
 	}
 	for _, secret := range []string{"private/path", "secret=query", "vendor detail", "Authorization"} {
 		if strings.Contains(logged, secret) {
@@ -752,7 +741,7 @@ func (observer *telemetryRecordingBeginObserver) Finish(ctx context.Context, eve
 	}
 }
 
-func (observer *telemetryTestObserver) Start(ctx context.Context, event TelemetryEvent) context.Context {
+func (observer *telemetryTestObserver) Begin(ctx context.Context, event TelemetryEvent) context.Context {
 	observer.record(event)
 	return context.WithValue(ctx, telemetryTestContextKey{}, event.Scope)
 }
@@ -804,15 +793,11 @@ type telemetryBoundaryObserver struct {
 
 var _ BeginTelemetryObserver = (*telemetryBoundaryObserver)(nil)
 
-func (observer *telemetryBoundaryObserver) Start(ctx context.Context, _ TelemetryEvent) context.Context {
+func (observer *telemetryBoundaryObserver) Begin(ctx context.Context, _ TelemetryEvent) context.Context {
 	if observer.panicStart {
 		panic("observer start")
 	}
 	return nil
-}
-
-func (observer *telemetryBoundaryObserver) Begin(ctx context.Context, event TelemetryEvent) context.Context {
-	return observer.Start(ctx, event)
 }
 
 func (observer *telemetryBoundaryObserver) Finish(context.Context, TelemetryEvent) {

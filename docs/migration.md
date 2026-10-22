@@ -2,6 +2,42 @@
 
 [Documentation index](README.md) · [Repository entry](../README.md)
 
+## v2 to v3 clean replacement
+
+Version 3 keeps one owner for each mechanism and removes the superseded API
+instead of retaining compatibility switches or parallel implementations:
+
+| Removed in v3 | Replacement |
+| --- | --- |
+| Local Retry-After parsing | `github.com/faustbrian/go-retry/v3/adapters/http.ParseRetryAfter`, used by retry and both rate-limit observers |
+| HTTP-owned backoff, jitter, budget and exhaustion engine | `github.com/faustbrian/go-retry/v3` executes the schedule; the middleware keeps HTTP eligibility, replay and response cleanup |
+| `RetryOptions.Jitter`, `RetryJitter`, `RetryJitterFunc` | `RetryOptions.Random` (a `retry.Random`), applied to exponential delays only |
+| `RetryExhaustedError`, `ErrRetryExhausted` | `retry.ExhaustedError`, `retry.BudgetError`, `retry.PermanentError`; the last status is reachable through `errors.As` to a value with `StatusCode() int` |
+| `ReadOptions.IgnoreCloseError` | none: close failures are always reported with the complete body |
+| `TelemetryObserver`, `TelemetryOptions.Observer`, `SlogTelemetryObserver.Start` | `BeginTelemetryObserver`, `TelemetryOptions.BeginObserver`, `Begin` |
+| `Config.Timeout` | `Config.Policy.OperationTimeout` |
+
+Behavior changes to review when adopting v3:
+
+- Retry-After is a minimum wait: it lengthens a shorter backoff but no longer
+  shortens it, so `Retry-After: 0` waits the backoff. Every delay, including a
+  hint, is capped by `MaximumRetryAfter`; `MaximumDelay` and explicit `Delays`
+  must not exceed it.
+- Retry-After values longer than 128 raw bytes are ignored, and numeric values
+  above 2^31-1 seconds saturate instead of being rejected. Vendor
+  remaining/reset parsing is unchanged.
+- Explicit `Delays` are no longer jittered.
+- A failed exchange that policy does not retry, such as an unsafe `POST`
+  without idempotency proof, returns its original transport error instead of
+  an exhaustion error. Non-retryable responses are returned unchanged as
+  before.
+- `MaximumElapsed` stops retries between exchanges; it is still not a deadline
+  for the exchange itself.
+
+Update imports to `github.com/faustbrian/go-http-client/v3` and replace each
+removed identifier in the same change. Roll back by reverting the consumer
+revision as a whole.
+
 ## Root v2 import identity
 
 For root `v2.0.0`, select

@@ -148,7 +148,7 @@
       ],
       "executable_evidence": [
         "TestRetryUsesBoundedRetryAfterAndClosesDiscardedResponses",
-        "TestRetryDelayExactBoundaries",
+        "TestRetryAfterSelectsDelayWithinCaps",
         "TestRateLimitObservationExactBoundaries",
         "TestRateLimitHeaderObservationMatrix"
       ],
@@ -161,7 +161,7 @@
       "differential_evidence": [],
       "differential_classification": "not assessed",
       "public_behavior": [
-        "Parse Retry-After delay seconds or HTTP dates, handle malformed and past values deterministically, and clamp all waits."
+        "Parse Retry-After delay seconds or HTTP dates with the shared go-retry/v3 parser, treat malformed or oversized values as absent and past values as zero, use hints as minimum retry waits, and clamp all waits."
       ]
     },
     {

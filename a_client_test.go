@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	goretry "github.com/faustbrian/go-retry/v3"
 )
 
 func TestNewClientProvidesFiniteSafeDefaults(t *testing.T) {
@@ -92,12 +94,12 @@ func TestRetryStopsAtMaximumAttempts(t *testing.T) {
 		t.Fatalf("construct request: %v", err)
 	}
 	_, err = client.Do(request)
-	var exhausted *RetryExhaustedError
+	var exhausted *goretry.ExhaustedError
 	if !errors.As(err, &exhausted) {
 		t.Fatalf("retry error = %#v", err)
 	}
-	if exhausted.Attempts != 2 || attempts != 2 {
-		t.Fatalf("attempts = error:%d transport:%d, want 2", exhausted.Attempts, attempts)
+	if exhausted.Result().Attempts != 2 || attempts != 2 {
+		t.Fatalf("attempts = error:%d transport:%d, want 2", exhausted.Result().Attempts, attempts)
 	}
 	if delays := clock.Delays(); len(delays) != 1 {
 		t.Fatalf("retry delays = %v, want one delay", delays)

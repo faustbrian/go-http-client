@@ -12,6 +12,8 @@ import (
 
 	breaker "github.com/faustbrian/go-circuit-breaker"
 	"github.com/faustbrian/go-circuit-breaker/breakertest"
+
+	retry "github.com/faustbrian/go-retry/v3"
 )
 
 func TestGoCircuitBreakerRecordsOneLogicalCompletionAcrossRetries(t *testing.T) {
@@ -43,7 +45,7 @@ func TestGoCircuitBreakerRecordsOneLogicalCompletionAcrossRetries(t *testing.T) 
 	retryMiddleware, err := NewRetryMiddleware(RetryOptions{
 		Name: "retry", MaximumAttempts: 2,
 		Clock:  &rateLimitTestClock{now: time.Unix(1_700_000_000, 0)},
-		Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+		Random: zeroRetryRandom{},
 	})
 	if err != nil {
 		t.Fatalf("construct retry middleware: %v", err)
@@ -116,7 +118,8 @@ func TestGoCircuitBreakerHalfOpenProbeOwnsBoundedRetries(t *testing.T) {
 
 	request, _ := http.NewRequest(http.MethodGet, "https://api.example.test", nil)
 	response, err := client.Do(request)
-	if !errors.Is(err, ErrRetryExhausted) || response != nil {
+	var exhausted *retry.ExhaustedError
+	if !errors.As(err, &exhausted) || response != nil {
 		t.Fatalf("opening response = %#v, error = %v", response, err)
 	}
 	if snapshot := circuit.Snapshot(); snapshot.State != breaker.StateOpen ||
@@ -336,7 +339,7 @@ func TestGoCircuitBreakerConcretePipelineOrderAndShortCircuits(t *testing.T) {
 	retry, err := NewRetryMiddleware(RetryOptions{
 		Name: "retry", MaximumAttempts: 2,
 		Clock:  &rateLimitTestClock{now: time.Unix(1_700_000_000, 0)},
-		Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+		Random: zeroRetryRandom{},
 	})
 	if err != nil {
 		t.Fatalf("construct retry middleware: %v", err)
@@ -491,7 +494,7 @@ func newGoCircuitBreakerRetryClient(
 	retryMiddleware, err := NewRetryMiddleware(RetryOptions{
 		Name: "retry", MaximumAttempts: 2,
 		Clock:  &rateLimitTestClock{now: time.Unix(1_700_000_000, 0)},
-		Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+		Random: zeroRetryRandom{},
 	})
 	if err != nil {
 		t.Fatalf("construct retry middleware: %v", err)

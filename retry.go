@@ -3,22 +3,19 @@ package httpclient
 import (
 	"context"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
+
+	retry "github.com/faustbrian/go-retry/v3"
+	retryhttp "github.com/faustbrian/go-retry/v3/adapters/http"
 )
 
-var (
-	// ErrInvalidRetryPolicy indicates invalid retry configuration or behavior.
-	ErrInvalidRetryPolicy = errors.New("invalid HTTP retry policy")
-	// ErrRetryExhausted indicates that retry policy cannot make another attempt.
-	ErrRetryExhausted = errors.New("HTTP retry attempts exhausted")
-)
+// ErrInvalidRetryPolicy indicates invalid retry configuration or behavior.
+var ErrInvalidRetryPolicy = errors.New("invalid HTTP retry policy")
 
 const (
 	defaultRetryBaseDelay      = 100 * time.Millisecond
@@ -37,21 +34,6 @@ type RetryClock interface {
 	Now() time.Time
 	// Wait waits for a duration or cancellation; it must return when context is canceled.
 	Wait(context.Context, time.Duration) error
-}
-
-// RetryJitter bounds one exponential backoff delay. Implementations must be
-// safe for concurrent use and return a value between zero and the input.
-type RetryJitter interface {
-	// Apply returns a proposed delay; negative or enlarged values fall back to the original delay.
-	Apply(time.Duration) time.Duration
-}
-
-// RetryJitterFunc adapts a function to RetryJitter.
-type RetryJitterFunc func(time.Duration) time.Duration
-
-// Apply implements RetryJitter.
-func (function RetryJitterFunc) Apply(delay time.Duration) time.Duration {
-	return function(delay)
 }
 
 // RetryAttempt describes one completed physical exchange to custom policy.
@@ -87,7 +69,9 @@ func (function RetryPolicyFunc) ShouldRetry(attempt RetryAttempt) bool {
 	return function(attempt)
 }
 
-// RetryOptions configures bounded operation retry middleware.
+// RetryOptions configures bounded operation retry middleware. Scheduling,
+// budgets and terminal errors are owned by github.com/faustbrian/go-retry/v3;
+// this middleware owns HTTP eligibility, request replay and response cleanup.
 type RetryOptions struct {
 	// Name names the middleware registration; use a stable nonsecret lowercase identifier.
 	Name string
@@ -102,64 +86,33 @@ type RetryOptions struct {
 	// selects ten seconds.
 	MaximumElapsed time.Duration
 	// Delays selects one explicit delay after each failed attempt. When set,
-	// it must contain MaximumAttempts minus one positive entries and cannot be
-	// combined with BaseDelay or MaximumDelay.
+	// it must contain MaximumAttempts minus one positive entries no larger than
+	// MaximumRetryAfter and cannot be combined with BaseDelay or MaximumDelay.
+	// Explicit delays are not jittered.
 	Delays []time.Duration
 	// BaseDelay starts exponential backoff; zero selects 100 milliseconds.
 	BaseDelay time.Duration
-	// MaximumDelay caps exponential delay; zero selects two seconds.
+	// MaximumDelay caps exponential delay before jitter; zero selects two
+	// seconds. It must not exceed MaximumRetryAfter.
 	MaximumDelay time.Duration
-	// MaximumRetryAfter caps parsed Retry-After; zero selects 30 seconds.
+	// MaximumRetryAfter caps every selected delay, including a server
+	// Retry-After hint; zero selects 30 seconds.
 	MaximumRetryAfter time.Duration
 	// RetryUnsafeWithIdempotency opts unsafe methods into default policy only with
 	// package-applied key proof.
 	RetryUnsafeWithIdempotency bool
 	// Clock is borrowed; Now must be nonblocking and Wait must honor cancellation.
 	Clock RetryClock
-	// Jitter is borrowed and applies only to exponential delays.
-	Jitter RetryJitter
+	// Random is borrowed and jitters exponential delays; nil selects a
+	// per-middleware source seeded from crypto/rand.
+	Random retry.Random
 	// Policy is borrowed; nil uses the package's method, status and error policy.
 	Policy RetryPolicy
 }
 
-// RetryExhaustedError reports a bounded retry stop without rendering the
-// transport cause, response headers, or request data.
-type RetryExhaustedError struct {
-	// Attempts is the number of completed attempts, including a nonretryable first failure.
-	Attempts int
-	// Elapsed is observed time at termination, not a hard duration bound.
-	Elapsed time.Duration
-	// StatusCode is the last response status, or zero without a response.
-	StatusCode int
-	// Cause retains the underlying error for unwrapping; it may contain sensitive provider data.
-	Cause error
-}
-
-// Error implements error without rendering potentially sensitive causes.
-func (*RetryExhaustedError) Error() string {
-	return "HTTP retry attempts exhausted"
-}
-
-// Unwrap preserves the stable sentinel and final cause.
-func (err *RetryExhaustedError) Unwrap() []error {
-	causes := []error{ErrRetryExhausted}
-	if err.Cause != nil {
-		causes = append(causes, err.Cause)
-	}
-
-	return causes
-}
-
 type resolvedRetryOptions struct {
-	maximumAttempts   int
-	maximumElapsed    time.Duration
-	delays            []time.Duration
-	baseDelay         time.Duration
-	maximumDelay      time.Duration
-	maximumRetryAfter time.Duration
-	clock             RetryClock
-	jitter            RetryJitter
-	policy            RetryPolicy
+	policy *retry.Policy
+	retry  RetryPolicy
 }
 
 // NewRetryMiddleware creates operation-scoped transport middleware. The
@@ -185,27 +138,6 @@ func resolveRetryOptions(options RetryOptions) (resolvedRetryOptions, error) {
 	if options.MaximumElapsed < 0 || options.MaximumRetryAfter < 0 {
 		return resolvedRetryOptions{}, fmt.Errorf("%w: retry duration bounds are invalid", ErrInvalidRetryPolicy)
 	}
-	var delays []time.Duration
-	baseDelay := options.BaseDelay
-	maximumDelay := options.MaximumDelay
-	if len(options.Delays) > 0 {
-		if len(options.Delays) != options.MaximumAttempts-1 || baseDelay != 0 || maximumDelay != 0 {
-			return resolvedRetryOptions{}, fmt.Errorf("%w: explicit delays must match attempts and cannot use exponential bounds", ErrInvalidRetryPolicy)
-		}
-		delays = append([]time.Duration(nil), options.Delays...)
-		for _, delay := range delays {
-			if delay <= 0 {
-				return resolvedRetryOptions{}, fmt.Errorf("%w: explicit delays must be positive", ErrInvalidRetryPolicy)
-			}
-		}
-	} else {
-		if baseDelay == 0 {
-			baseDelay = defaultRetryBaseDelay
-		}
-		if maximumDelay == 0 {
-			maximumDelay = defaultRetryMaximumDelay
-		}
-	}
 	maximumElapsed := options.MaximumElapsed
 	if maximumElapsed == 0 {
 		maximumElapsed = defaultRetryMaximumElapsed
@@ -214,8 +146,9 @@ func resolveRetryOptions(options RetryOptions) (resolvedRetryOptions, error) {
 	if maximumRetryAfter == 0 {
 		maximumRetryAfter = defaultMaximumRetryAfter
 	}
-	if baseDelay < 0 || maximumDelay < baseDelay {
-		return resolvedRetryOptions{}, fmt.Errorf("%w: retry duration bounds are invalid", ErrInvalidRetryPolicy)
+	backoff, err := resolveRetryBackoff(options, maximumRetryAfter)
+	if err != nil {
+		return resolvedRetryOptions{}, err
 	}
 	clock := options.Clock
 	if clock == nil {
@@ -223,11 +156,14 @@ func resolveRetryOptions(options RetryOptions) (resolvedRetryOptions, error) {
 	} else if nilLike(clock) {
 		return resolvedRetryOptions{}, fmt.Errorf("%w: clock is nil", ErrInvalidRetryPolicy)
 	}
-	jitter := options.Jitter
-	if jitter == nil {
-		jitter = cryptoRetryJitter{reader: rand.Reader}
-	} else if nilLike(jitter) {
-		return resolvedRetryOptions{}, fmt.Errorf("%w: jitter is nil", ErrInvalidRetryPolicy)
+	random := options.Random
+	if random == nil {
+		random, err = newRetryRandom()
+		if err != nil {
+			return resolvedRetryOptions{}, err
+		}
+	} else if nilLike(random) {
+		return resolvedRetryOptions{}, fmt.Errorf("%w: random is nil", ErrInvalidRetryPolicy)
 	}
 	policy := options.Policy
 	if policy == nil {
@@ -235,109 +171,130 @@ func resolveRetryOptions(options RetryOptions) (resolvedRetryOptions, error) {
 	} else if nilLike(policy) {
 		return resolvedRetryOptions{}, fmt.Errorf("%w: policy is nil", ErrInvalidRetryPolicy)
 	}
+	scheduler := retryPolicyClock{clock: clock}
+	executor, err := retry.NewPolicy(retry.Config{
+		Backoff: backoff, MaxAttempts: uint(options.MaximumAttempts),
+		MaxElapsed: maximumElapsed, MaxDelay: maximumRetryAfter,
+		Clock: scheduler, Sleeper: scheduler, Random: random,
+		Classifier: retry.RetryableClassifier(),
+	})
+	if err != nil {
+		return resolvedRetryOptions{}, fmt.Errorf("%w: %w", ErrInvalidRetryPolicy, err)
+	}
 
-	return resolvedRetryOptions{
-		maximumAttempts: options.MaximumAttempts, maximumElapsed: maximumElapsed,
-		delays:    append([]time.Duration(nil), delays...),
-		baseDelay: baseDelay, maximumDelay: maximumDelay,
-		maximumRetryAfter: maximumRetryAfter,
-		clock:             clock, jitter: jitter, policy: policy,
-	}, nil
+	return resolvedRetryOptions{policy: executor, retry: policy}, nil
+}
+
+func resolveRetryBackoff(options RetryOptions, maximumRetryAfter time.Duration) (retry.Backoff, error) {
+	if len(options.Delays) > 0 {
+		if len(options.Delays) != options.MaximumAttempts-1 || options.BaseDelay != 0 || options.MaximumDelay != 0 {
+			return nil, fmt.Errorf("%w: explicit delays must match attempts and cannot use exponential bounds", ErrInvalidRetryPolicy)
+		}
+		delays := append(explicitRetryBackoff(nil), options.Delays...)
+		for _, delay := range delays {
+			if delay <= 0 || delay > maximumRetryAfter {
+				return nil, fmt.Errorf("%w: explicit delays must be positive and within the maximum retry delay", ErrInvalidRetryPolicy)
+			}
+		}
+
+		return delays, nil
+	}
+	baseDelay := options.BaseDelay
+	if baseDelay == 0 {
+		baseDelay = defaultRetryBaseDelay
+	}
+	maximumDelay := options.MaximumDelay
+	if maximumDelay == 0 {
+		maximumDelay = defaultRetryMaximumDelay
+	}
+	if baseDelay < 0 || maximumDelay < baseDelay || maximumDelay > maximumRetryAfter {
+		return nil, fmt.Errorf("%w: retry duration bounds are invalid", ErrInvalidRetryPolicy)
+	}
+
+	return retry.FullJitter(cappedRetryBackoff{backoff: retry.Exponential(baseDelay, 2), maximum: maximumDelay}), nil
 }
 
 func executeRetry(request *http.Request, next Next, options resolvedRetryOptions) (*http.Response, error) {
-	var pendingResponse *http.Response
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			_ = drainAndCloseRetryResponse(pendingResponse)
-			panic(recovered)
-		}
-	}()
-	started := options.clock.Now()
 	bodyReplayable := retryBodyReplayable(request)
 	hasIdempotency := idempotencyPolicyApplied(request.Context())
-	current := request
-
-	var attemptTokens [maximumRetryAttempts]struct{}
-	attempts := attemptTokens[:0]
-	for {
-		attempts = append(attempts, struct{}{})
-		attempt := len(attempts)
-		response, failure := next(current)
-		pendingResponse = response
-		metadata := RetryAttempt{
-			Request: snapshotRequest(current), Response: response, Failure: failure,
-			Attempt: attempt, BodyReplayable: bodyReplayable,
-			HasIdempotency: hasIdempotency,
-		}
-		shouldRetry := options.policy.ShouldRetry(metadata)
-		if !shouldRetry {
-			if failure != nil {
-				pendingResponse = nil
-				return nil, retryExhausted(attempt, options.clock.Now().Sub(started), 0, failure)
+	attempt := 0
+	var passthrough error
+	// Exchanges keep the caller's request context. The executor's attempt
+	// context ends when Do returns, which would cancel a returned response body
+	// mid-stream; Policy.OperationTimeout owns the exchange deadline instead.
+	operation := func(context.Context) (retry.AttemptResult[*http.Response], error) {
+		current := request
+		if attempt > 0 {
+			replayed, err := replayRequest(request)
+			if err != nil {
+				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(err)
 			}
-
-			pendingResponse = nil
-			return response, nil
+			current = replayed
 		}
-		statusCode := 0
-		if response != nil {
-			statusCode = response.StatusCode
+		attempt++
+		response, failure := next(current)
+		pending := response
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				_ = drainAndCloseRetryResponse(pending)
+				panic(recovered)
+			}
+		}()
+		eligible := options.retry.ShouldRetry(RetryAttempt{
+			Request: snapshotRequest(current), Response: response, Failure: failure,
+			Attempt: attempt, BodyReplayable: bodyReplayable, HasIdempotency: hasIdempotency,
+		})
+		if !eligible {
+			if failure != nil {
+				// A failed exchange the policy does not repeat may have reached the
+				// server, so its outcome is unknown; the caller receives the
+				// original failure exactly as an unwrapped client would.
+				passthrough = failure
+				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeUnknown}, failure
+			}
+			return retry.AttemptResult[*http.Response]{Value: response, Outcome: retry.OutcomeKnown}, nil
 		}
-		canRetry := true
-		if attempt == options.maximumAttempts {
-			canRetry = false
+		closeErr := drainAndCloseRetryResponse(response)
+		pending = nil
+		cause := retryCause(response, failure)
+		if closeErr != nil {
+			return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(errors.Join(cause, closeErr))
 		}
 		if !bodyReplayable {
-			canRetry = false
-		}
-		if !canRetry {
-			closeErr := drainAndCloseRetryResponse(response)
-			pendingResponse = nil
-
-			return nil, retryExhausted(attempt, options.clock.Now().Sub(started), statusCode, errors.Join(failure, closeErr))
+			return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Permanent(cause)
 		}
 
-		delay := retryDelay(response, attempt, options)
-		elapsed := options.clock.Now().Sub(started)
-		if retryElapsedBudgetExceeded(options.maximumElapsed, elapsed, delay) {
-			closeErr := drainAndCloseRetryResponse(response)
-			pendingResponse = nil
+		return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown}, retry.Retryable(cause)
+	}
+	result, err := retry.Do(request.Context(), options.policy, operation)
+	if err != nil {
+		if passthrough != nil && errors.Is(err, retry.ErrOutcomeUnknown) {
+			return nil, passthrough
+		}
 
-			return nil, retryExhausted(attempt, elapsed, statusCode, errors.Join(failure, closeErr))
-		}
-		if closeErr := drainAndCloseRetryResponse(response); closeErr != nil {
-			pendingResponse = nil
-			return nil, retryExhausted(attempt, elapsed, statusCode, errors.Join(failure, closeErr))
-		}
-		pendingResponse = nil
-		if waitErr := options.clock.Wait(request.Context(), delay); waitErr != nil {
-			return nil, retryExhausted(attempt, options.clock.Now().Sub(started), statusCode, waitErr)
-		}
-		replayed, replayErr := replayRequest(request)
-		if replayErr != nil {
-			return nil, retryExhausted(attempt, options.clock.Now().Sub(started), statusCode, replayErr)
-		}
-		current = replayed
+		return nil, err
 	}
 
+	return result.Value, nil
 }
 
-func retryExhausted(attempts int, elapsed time.Duration, status int, cause error) *RetryExhaustedError {
-	return &RetryExhaustedError{Attempts: attempts, Elapsed: elapsed, StatusCode: status, Cause: cause}
-}
+// retryCause carries the response status and its first Retry-After value as a
+// retry delay hint. A Retry-After value beyond the parser's raw byte bound is
+// treated as absent, so the exchange falls back to the configured backoff.
+func retryCause(response *http.Response, failure error) error {
+	if response == nil {
+		return failure
+	}
+	cause, err := retryhttp.NewError(response.StatusCode, response.Header, nil)
+	if err == nil {
+		return cause
+	}
+	cause, err = retryhttp.NewError(response.StatusCode, nil, nil)
+	if err == nil {
+		return cause
+	}
 
-func retryElapsedBudgetExceeded(maximumElapsed, elapsed, delay time.Duration) bool {
-	if maximumElapsed <= 0 {
-		return false
-	}
-	if elapsed < 0 {
-		return true
-	}
-	if elapsed >= maximumElapsed {
-		return true
-	}
-	return delay > maximumElapsed-elapsed
+	return err
 }
 
 type defaultRetryPolicy struct{ unsafeIdempotency bool }
@@ -398,51 +355,6 @@ func replayRequest(original *http.Request) (*http.Request, error) {
 	return replayed, nil
 }
 
-func retryDelay(response *http.Response, attempt int, options resolvedRetryOptions) time.Duration {
-	if response != nil {
-		if delay, ok := parseRetryAfter(response.Header.Get("Retry-After"), options.clock.Now()); ok {
-			return min(delay, options.maximumRetryAfter)
-		}
-	}
-	if len(options.delays) > 0 {
-		delay := options.delays[attempt-1]
-		return boundedRetryJitter(delay, options.jitter)
-	}
-	delay := exponentialRetryDelay(options.baseDelay, options.maximumDelay, attempt)
-	return boundedRetryJitter(delay, options.jitter)
-}
-
-func exponentialRetryDelay(baseDelay, maximumDelay time.Duration, attempt int) time.Duration {
-	scaled := new(big.Int).Lsh(big.NewInt(int64(baseDelay)), uint(attempt-1))
-	if !scaled.IsInt64() {
-		return maximumDelay
-	}
-	return min(time.Duration(scaled.Int64()), maximumDelay)
-}
-
-func boundedRetryJitter(delay time.Duration, jitter RetryJitter) time.Duration {
-	jittered := jitter.Apply(delay)
-	if jittered < 0 {
-		return delay
-	}
-	return min(jittered, delay)
-}
-
-func parseRetryAfter(value string, now time.Time) (time.Duration, bool) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return 0, false
-	}
-	if seconds, err := strconv.ParseUint(value, 10, 31); err == nil {
-		return time.Duration(seconds) * time.Second, true
-	}
-	date, err := http.ParseTime(value)
-	if err != nil {
-		return 0, false
-	}
-	return max(date.Sub(now), 0), true
-}
-
 func drainAndCloseRetryResponse(response *http.Response) error {
 	if response == nil || response.Body == nil {
 		return nil
@@ -451,6 +363,44 @@ func drainAndCloseRetryResponse(response *http.Response) error {
 	closeErr := response.Body.Close()
 
 	return errors.Join(readErr, closeErr)
+}
+
+// cappedRetryBackoff bounds exponential growth before jitter so MaximumDelay
+// limits local backoff while MaximumRetryAfter separately bounds server hints.
+type cappedRetryBackoff struct {
+	backoff retry.Backoff
+	maximum time.Duration
+}
+
+func (backoff cappedRetryBackoff) Delay(attempt uint, previous time.Duration, random retry.Random) time.Duration {
+	return min(backoff.backoff.Delay(attempt, previous, random), backoff.maximum)
+}
+
+type explicitRetryBackoff []time.Duration
+
+func (delays explicitRetryBackoff) Delay(attempt uint, _ time.Duration, _ retry.Random) time.Duration {
+	if attempt == 0 || attempt > uint(len(delays)) {
+		return delays[len(delays)-1]
+	}
+
+	return delays[attempt-1]
+}
+
+type retryPolicyClock struct{ clock RetryClock }
+
+func (clock retryPolicyClock) Now() time.Time { return clock.clock.Now() }
+
+func (clock retryPolicyClock) Sleep(ctx context.Context, delay time.Duration) error {
+	return clock.clock.Wait(ctx, delay)
+}
+
+func newRetryRandom() (retry.Random, error) {
+	var seed [16]byte
+	if _, err := rand.Read(seed[:]); err != nil {
+		return nil, fmt.Errorf("%w: random seed unavailable", ErrInvalidRetryPolicy)
+	}
+
+	return retry.NewRandom(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:])), nil
 }
 
 type systemRetryClock struct{}
@@ -469,22 +419,4 @@ func (systemRetryClock) Wait(ctx context.Context, delay time.Duration) error {
 	case <-timer.C:
 		return nil
 	}
-}
-
-type cryptoRetryJitter struct{ reader io.Reader }
-
-func (jitter cryptoRetryJitter) Apply(delay time.Duration) time.Duration {
-	if delay < 1 {
-		return 0
-	}
-	upperBound := int64(delay)
-	if upperBound == int64(^uint64(0)>>1) {
-		upperBound--
-	}
-	value, err := rand.Int(jitter.reader, big.NewInt(upperBound+1))
-	if err != nil {
-		return delay
-	}
-
-	return time.Duration(value.Int64())
 }

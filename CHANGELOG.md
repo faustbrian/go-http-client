@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Removed
+
+- Remove the local Retry-After parser, the retry backoff, jitter, budget and
+  exhaustion engine, `RetryOptions.Jitter`, `RetryJitter`, `RetryJitterFunc`,
+  `RetryExhaustedError` and `ErrRetryExhausted`. Retry scheduling and terminal
+  errors now come from `github.com/faustbrian/go-retry/v3`.
+- Remove `ReadOptions.IgnoreCloseError`; close failures are always reported.
+- Remove `TelemetryObserver`, `TelemetryOptions.Observer`,
+  `SlogTelemetryObserver.Start` and `Config.Timeout`.
+
+### Changed
+
+- Move the module to `github.com/faustbrian/go-http-client/v3`.
+- Treat Retry-After as a minimum wait capped by `MaximumRetryAfter`, ignore
+  values beyond 128 raw bytes and saturate oversized seconds, in retry and both
+  rate-limit observers. `MaximumDelay` and explicit delays must not exceed
+  `MaximumRetryAfter`, and explicit delays are no longer jittered.
+- Return the original failure for exchanges that retry policy does not repeat.
+
+### Security
+
+- Build with Go 1.27.3 to address GO-2026-6809 in `crypto/x509`.
+
 ## [2.1.0] - 2026-10-15
 
 ### Added

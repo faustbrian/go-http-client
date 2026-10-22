@@ -131,7 +131,8 @@ func TestTransportIntegrationTotalTimeoutCancelsRequest(t *testing.T) {
 		time.Sleep(250 * time.Millisecond)
 	}))
 	defer server.Close()
-	client, err := New(Config{Timeout: 20 * time.Millisecond})
+	timeout := 20 * time.Millisecond
+	client, err := New(Config{Policy: PolicyOverrides{OperationTimeout: &timeout}})
 	if err != nil {
 		t.Fatalf("construct client: %v", err)
 	}

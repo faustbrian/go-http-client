@@ -11,9 +11,6 @@ type ReadOptions struct {
 	// MaximumBodyBytes bounds consumed payload bytes; zero selects 8 MiB, at most
 	// 1 GiB. Buffer growth can allocate more than the payload limit.
 	MaximumBodyBytes int64
-	// IgnoreCloseError suppresses only the final Close error, never a read or
-	// byte-limit failure. The default preserves close errors for unwrapping.
-	IgnoreCloseError bool
 }
 
 // ReadResponseBytes consumes and closes a nonnil response body exactly once,
@@ -30,7 +27,7 @@ func ReadResponseBytes(response *http.Response, options ReadOptions) (body []byt
 	}
 	source := response.Body
 	defer func() {
-		if closeErr := source.Close(); closeErr != nil && !options.IgnoreCloseError {
+		if closeErr := source.Close(); closeErr != nil {
 			resultErr = errors.Join(resultErr, &ResponseBodyError{Operation: "close", Cause: closeErr})
 		}
 	}()

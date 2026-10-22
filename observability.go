@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"sync/atomic"
+
+	retry "github.com/faustbrian/go-retry/v3"
 )
 
 // ErrInvalidTelemetry indicates malformed telemetry adapters or header policy.
@@ -120,16 +122,6 @@ func (event TelemetryEvent) MetricLabels() TelemetryMetricLabels {
 	}
 }
 
-// TelemetryObserver creates derived trace contexts and receives completions.
-// Implementations must be safe for concurrent use.
-type TelemetryObserver interface {
-	// Start runs synchronously; returned context must preserve parent cancellation, deadlines
-	// and values.
-	Start(context.Context, TelemetryEvent) context.Context
-	// Finish runs synchronously before caller body consumption; it must not block.
-	Finish(context.Context, TelemetryEvent)
-}
-
 // BeginTelemetryObserver creates derived trace contexts and receives
 // completions using the ecosystem observation vocabulary. Implementations must
 // be safe for concurrent use.
@@ -149,12 +141,10 @@ type TelemetryPropagator interface {
 }
 
 // TelemetryOptions configures optional observation, propagation, and strict
-// trust-boundary header handling. Observer and BeginObserver are mutually
-// exclusive. Literal nil interfaces are omitted; typed-nil values are invalid.
+// trust-boundary header handling. Literal nil interfaces are omitted; typed-nil
+// values are invalid.
 type TelemetryOptions struct {
-	// Observer is the borrowed legacy observer; use BeginObserver for new adapters.
-	Observer TelemetryObserver
-	// BeginObserver is the borrowed Begin/Finish observer; setting Observer too is invalid.
+	// BeginObserver is the borrowed Begin/Finish observer.
 	BeginObserver BeginTelemetryObserver
 	// Propagator is borrowed and injects only on trusted-origin attempts.
 	Propagator TelemetryPropagator
@@ -169,7 +159,6 @@ type TelemetryOptions struct {
 }
 
 type telemetryPolicy struct {
-	observer          TelemetryObserver
 	beginObserver     BeginTelemetryObserver
 	propagator        TelemetryPropagator
 	correlationHeader string
@@ -186,14 +175,10 @@ func newTelemetryMiddleware(options *TelemetryOptions) ([]Middleware, error) {
 	if options == nil {
 		return nil, nil
 	}
-	if options.Observer != nil && options.BeginObserver != nil {
+	if options.BeginObserver == nil && options.Propagator == nil {
 		return nil, ErrInvalidTelemetry
 	}
-	if options.Observer == nil && options.BeginObserver == nil && options.Propagator == nil {
-		return nil, ErrInvalidTelemetry
-	}
-	if options.Observer != nil && nilLike(options.Observer) ||
-		options.BeginObserver != nil && nilLike(options.BeginObserver) ||
+	if options.BeginObserver != nil && nilLike(options.BeginObserver) ||
 		options.Propagator != nil && nilLike(options.Propagator) {
 		return nil, ErrInvalidTelemetry
 	}
@@ -206,7 +191,7 @@ func newTelemetryMiddleware(options *TelemetryOptions) ([]Middleware, error) {
 		return nil, ErrInvalidTelemetry
 	}
 	policy := telemetryPolicy{
-		observer: options.Observer, beginObserver: options.BeginObserver,
+		beginObserver:     options.BeginObserver,
 		propagator:        options.Propagator,
 		correlationHeader: canonicalCorrelation,
 		baggage:           make(map[string]struct{}, len(options.BaggageAllowlist)),
@@ -310,32 +295,22 @@ func (policy telemetryPolicy) prepareAttemptHeaders(request *http.Request, state
 
 func (policy telemetryPolicy) start(ctx context.Context, event TelemetryEvent) (derived context.Context) {
 	derived = ctx
-	if policy.observer == nil && policy.beginObserver == nil {
+	if policy.beginObserver == nil {
 		return derived
 	}
 	defer func() { _ = recover() }()
-	var observed context.Context
-	if policy.beginObserver != nil {
-		observed = policy.beginObserver.Begin(ctx, event)
-	} else {
-		observed = policy.observer.Start(ctx, event)
-	}
-	if observed != nil {
+	if observed := policy.beginObserver.Begin(ctx, event); observed != nil {
 		derived = observed
 	}
 	return derived
 }
 
 func (policy telemetryPolicy) finish(ctx context.Context, event TelemetryEvent) {
-	if policy.observer == nil && policy.beginObserver == nil {
+	if policy.beginObserver == nil {
 		return
 	}
 	defer func() { _ = recover() }()
-	if policy.beginObserver != nil {
-		policy.beginObserver.Finish(ctx, event)
-	} else {
-		policy.observer.Finish(ctx, event)
-	}
+	policy.beginObserver.Finish(ctx, event)
 }
 
 func (policy telemetryPolicy) inject(ctx context.Context, header http.Header) {
@@ -360,15 +335,19 @@ func finishTelemetryEvent(start TelemetryEvent, response *http.Response, failure
 }
 
 func telemetryOutcome(response *http.Response, failure error) TelemetryOutcome {
+	var exhausted *retry.ExhaustedError
+	var budget *retry.BudgetError
 	switch {
+	// Retry budget errors can wrap a deadline, so they are classified before
+	// generic cancellation.
+	case errors.As(failure, &exhausted), errors.As(failure, &budget):
+		return TelemetryOutcomeRetryFailure
 	case errors.Is(failure, context.Canceled), errors.Is(failure, context.DeadlineExceeded):
 		return TelemetryOutcomeCanceled
 	case errors.Is(failure, ErrRateLimitCapacity), errors.Is(failure, ErrRateLimitWaitExceeded):
 		return TelemetryOutcomeRateLimited
 	case errors.Is(failure, ErrCircuitRejected):
 		return TelemetryOutcomeCircuitOpen
-	case errors.Is(failure, ErrRetryExhausted):
-		return TelemetryOutcomeRetryFailure
 	case failure != nil:
 		var transport *TransportError
 		if errors.As(failure, &transport) {

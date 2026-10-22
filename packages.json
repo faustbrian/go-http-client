@@ -6,7 +6,7 @@
       "module_directory": ".",
       "directory": ".",
       "name": "httpclient",
-      "import_path": "github.com/faustbrian/go-http-client/v2",
+      "import_path": "github.com/faustbrian/go-http-client/v3",
       "kind": "public",
       "production": true,
       "executable": true,

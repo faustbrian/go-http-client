@@ -233,15 +233,15 @@ func FuzzRetryPolicy(fuzz *testing.F) {
 		unsafe bool,
 		hasIdempotency bool,
 	) {
-		if len(method)+len(retryAfter) > 8<<10 {
+		if len(method)+len(retryAfter) > 8<<10 || status < 100 || status > 999 {
 			t.Skip()
 		}
-		options := RetryOptions{
-			MaximumAttempts:   attempts,
-			MaximumElapsed:    time.Second,
-			MaximumRetryAfter: time.Second,
-		}
-		resolved, err := resolveRetryOptions(options)
+		clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+		middleware, err := NewRetryMiddleware(RetryOptions{
+			Name: "retry", MaximumAttempts: attempts, MaximumElapsed: time.Hour,
+			MaximumDelay: time.Second, MaximumRetryAfter: time.Second,
+			RetryUnsafeWithIdempotency: unsafe, Clock: clock,
+		})
 		if attempts < 2 || attempts > maximumRetryAttempts {
 			if err == nil {
 				t.Fatal("invalid attempt bound was accepted")
@@ -251,24 +251,30 @@ func FuzzRetryPolicy(fuzz *testing.F) {
 		if err != nil {
 			t.Fatalf("bounded retry options failed: %v", err)
 		}
-		response := &http.Response{
-			StatusCode: status,
-			Header:     http.Header{"Retry-After": {retryAfter}},
-		}
-		delay := retryDelay(response, 1, resolved)
-		if delay < 0 || delay > resolved.maximumRetryAfter {
-			t.Fatalf("retry delay escaped bounds: %s", delay)
-		}
 		request, requestErr := http.NewRequest(method, "https://api.example.test", nil)
 		if requestErr != nil {
 			return
 		}
-		policy := defaultRetryPolicy{unsafeIdempotency: unsafe}
-		if policy.ShouldRetry(RetryAttempt{
-			Request: request, Response: response, Attempt: 1,
-			BodyReplayable: true, HasIdempotency: hasIdempotency,
-		}) && !retrySafeMethod(request.Method) && (!unsafe || !hasIdempotency) {
-			t.Fatal("unsafe operation was accepted for retry")
+		if hasIdempotency {
+			ctx, keyErr := WithIdempotencyKey(request.Context(), "fuzz-key")
+			if keyErr == nil {
+				request = request.WithContext(ctx)
+			}
+		}
+		calls := 0
+		_, _ = middleware.around(request, func(*http.Request) (*http.Response, error) {
+			calls++
+			header := http.Header{}
+			header["Retry-After"] = []string{retryAfter}
+			return &http.Response{StatusCode: status, Header: header, Body: http.NoBody}, nil
+		})
+		for _, delay := range clock.Delays() {
+			if delay < 0 || delay > time.Second {
+				t.Fatalf("retry delay escaped bounds: %s", delay)
+			}
+		}
+		if !retrySafeMethod(request.Method) && calls != 1 {
+			t.Fatalf("unsafe operation without package-applied key proof made %d calls", calls)
 		}
 	})
 }

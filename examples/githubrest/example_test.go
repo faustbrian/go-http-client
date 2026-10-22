@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	httpclient "github.com/faustbrian/go-http-client/v2"
+	httpclient "github.com/faustbrian/go-http-client/v3"
 )
 
 func Example() {

@@ -81,12 +81,9 @@ func TestReadResponseBytesSeparatesReadAndClosePolicy(t *testing.T) {
 	for _, test := range []struct {
 		name        string
 		readFailure bool
-		ignoreClose bool
 	}{
 		{name: "close-reported"},
-		{name: "close-ignored", ignoreClose: true},
 		{name: "both-reported", readFailure: true},
-		{name: "read-never-ignored", readFailure: true, ignoreClose: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			var closed atomic.Int64
@@ -95,8 +92,8 @@ func TestReadResponseBytesSeparatesReadAndClosePolicy(t *testing.T) {
 				reader = io.MultiReader(reader, &responseErrorReader{err: readFailure})
 			}
 			response := &http.Response{Body: &responseTestBody{Reader: reader, closed: &closed, closeErr: closeFailure}}
-			body, err := ReadResponseBytes(response, ReadOptions{MaximumBodyBytes: 64, IgnoreCloseError: test.ignoreClose})
-			if errors.Is(err, readFailure) != test.readFailure || errors.Is(err, closeFailure) != !test.ignoreClose {
+			body, err := ReadResponseBytes(response, ReadOptions{MaximumBodyBytes: 64})
+			if errors.Is(err, readFailure) != test.readFailure || !errors.Is(err, closeFailure) {
 				t.Fatalf("wrong retained error causes: %v", err)
 			}
 			if test.readFailure && body != nil || !test.readFailure && string(body) != "partial" {

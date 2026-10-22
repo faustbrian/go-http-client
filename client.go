@@ -79,13 +79,6 @@ type Config struct {
 	Profile PolicyProfileID
 	// Policy overrides inspectable values; see PolicyValues for which are enforced directly.
 	Policy PolicyOverrides
-	// Timeout sets the standard client timeout for an HTTP exchange, including body
-	// reads and redirects, per inner Do invocation. It does not deadline outer
-	// middleware, retry waits or blocking providers. Zero uses the resolved profile
-	// timeout (30 seconds for interactive/v1).
-	// When set, it is the legacy client-level operation-timeout override and
-	// takes precedence over Policy.OperationTimeout.
-	Timeout time.Duration
 	// ConnectTimeout bounds establishing a network connection on the standard
 	// transport. Zero selects the production-safe 10-second default.
 	ConnectTimeout time.Duration
@@ -154,9 +147,6 @@ type Client struct {
 
 // New constructs a Client without mutating any caller-provided transport.
 func New(config Config) (*Client, error) {
-	if config.Timeout < 0 {
-		return nil, fmt.Errorf("%w: timeout must not be negative", ErrInvalidConfig)
-	}
 	if config.ConnectTimeout < 0 {
 		return nil, fmt.Errorf(
 			"%w: connect timeout must not be negative",
@@ -214,9 +204,6 @@ func New(config Config) (*Client, error) {
 		return nil, fmt.Errorf("%w: TLS policy requires the standard transport", ErrInvalidConfig)
 	}
 	clientPolicy := clonePolicyOverrides(config.Policy)
-	if config.Timeout > 0 {
-		clientPolicy.OperationTimeout = cloneDuration(&config.Timeout)
-	}
 	resolvedPolicy, err := ResolvePolicy(config.Profile, clientPolicy, PolicyOverrides{})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)

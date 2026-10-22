@@ -11,15 +11,6 @@ import (
 	"time"
 )
 
-func TestNewClientRejectsNegativeTimeout(t *testing.T) {
-	t.Parallel()
-
-	_, err := New(Config{Timeout: -time.Second})
-	if !errors.Is(err, ErrInvalidConfig) {
-		t.Fatalf("New() error = %v, want ErrInvalidConfig", err)
-	}
-}
-
 func TestNewClientAppliesAndValidatesConnectTimeout(t *testing.T) {
 	t.Parallel()
 

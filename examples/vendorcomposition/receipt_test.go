@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	httpclient "github.com/faustbrian/go-http-client/v2"
+	httpclient "github.com/faustbrian/go-http-client/v3"
 )
 
 func TestVendorCompositionRetriesThenReusesCache(t *testing.T) {
@@ -84,12 +84,8 @@ func TestVendorCompositionPreservesUnknownPOSTOutcomeWithoutRetry(t *testing.T) 
 	if !errors.As(err, &unknown) {
 		t.Fatalf("vendor error = %v, want typed unknown outcome", err)
 	}
-	if !errors.Is(err, httpclient.ErrRetryExhausted) || !errors.Is(err, disconnect) {
-		t.Fatalf("unknown-outcome error = %v", err)
-	}
-	var exhausted *httpclient.RetryExhaustedError
-	if !errors.As(err, &exhausted) || exhausted.Attempts != 1 {
-		t.Fatalf("retry exhaustion = %#v, want one attempt", exhausted)
+	if !errors.Is(err, disconnect) {
+		t.Fatalf("unknown-outcome error = %v, want the original transport failure", err)
 	}
 
 	if got := origin.calls(); got != 1 {
@@ -109,7 +105,7 @@ func TestVendorCompositionPreservesUnknownPOSTOutcomeWithoutRetry(t *testing.T) 
 		{phase: httpclient.TelemetryStart, scope: httpclient.TelemetryOperation, cache: httpclient.TelemetryCacheNone},
 		{phase: httpclient.TelemetryStart, scope: httpclient.TelemetryAttempt, attempt: 1, cache: httpclient.TelemetryCacheNone},
 		{phase: httpclient.TelemetryFinish, scope: httpclient.TelemetryAttempt, attempt: 1, outcome: httpclient.TelemetryOutcomeFailure, cache: httpclient.TelemetryCacheNone},
-		{phase: httpclient.TelemetryFinish, scope: httpclient.TelemetryOperation, outcome: httpclient.TelemetryOutcomeRetryFailure, cache: httpclient.TelemetryCacheNone},
+		{phase: httpclient.TelemetryFinish, scope: httpclient.TelemetryOperation, outcome: httpclient.TelemetryOutcomeTransport, cache: httpclient.TelemetryCacheNone},
 	}
 	if got := telemetry.snapshot(); !equalReceiptTelemetry(got, wantTelemetry) {
 		t.Fatalf("unknown-outcome telemetry =\n%v\nwant\n%v", got, wantTelemetry)
@@ -318,7 +314,7 @@ func newReceiptClient(
 	middleware := append(rateMiddleware, breakerMiddleware, retryMiddleware, bulkheadMiddleware)
 	middleware = append(middleware, cacheMiddleware)
 	client, err := httpclient.New(httpclient.Config{
-		Transport: origin, Telemetry: &httpclient.TelemetryOptions{Observer: telemetry}, Middleware: middleware,
+		Transport: origin, Telemetry: &httpclient.TelemetryOptions{BeginObserver: telemetry}, Middleware: middleware,
 	})
 	if err != nil {
 		t.Fatalf("construct client: %v", err)
@@ -534,7 +530,7 @@ type receiptObserver struct {
 	events []receiptTelemetry
 }
 
-func (observer *receiptObserver) Start(ctx context.Context, event httpclient.TelemetryEvent) context.Context {
+func (observer *receiptObserver) Begin(ctx context.Context, event httpclient.TelemetryEvent) context.Context {
 	observer.record(event)
 
 	return ctx

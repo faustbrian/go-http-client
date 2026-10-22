@@ -16,7 +16,7 @@ import (
 
 type benchmarkTelemetryObserver struct{}
 
-func (benchmarkTelemetryObserver) Start(ctx context.Context, _ TelemetryEvent) context.Context {
+func (benchmarkTelemetryObserver) Begin(ctx context.Context, _ TelemetryEvent) context.Context {
 	return ctx
 }
 
@@ -61,7 +61,7 @@ func BenchmarkRequestPolicyPaths(b *testing.B) {
 
 	b.Run("instrumented", func(b *testing.B) {
 		middleware, err := newTelemetryMiddleware(&TelemetryOptions{
-			Observer: benchmarkTelemetryObserver{},
+			BeginObserver: benchmarkTelemetryObserver{},
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -99,7 +99,7 @@ func BenchmarkRequestPolicyPaths(b *testing.B) {
 		clock := &benchmarkRetryClock{now: time.Unix(1_700_000_000, 0)}
 		retry, err := NewRetryMiddleware(RetryOptions{
 			Name: "benchmark-retry", MaximumAttempts: 2, Clock: clock,
-			Jitter: RetryJitterFunc(func(time.Duration) time.Duration { return 0 }),
+			Random: zeroRetryRandom{},
 		})
 		if err != nil {
 			b.Fatal(err)

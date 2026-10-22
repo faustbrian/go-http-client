@@ -25,13 +25,6 @@ func (observer *SlogTelemetryObserver) Begin(ctx context.Context, event Telemetr
 	return ctx
 }
 
-// Start logs one operation or attempt start and preserves ctx.
-//
-// Deprecated: use Begin.
-func (observer *SlogTelemetryObserver) Start(ctx context.Context, event TelemetryEvent) context.Context {
-	return observer.Begin(ctx, event)
-}
-
 // Finish logs one operation or attempt completion.
 func (observer *SlogTelemetryObserver) Finish(ctx context.Context, event TelemetryEvent) {
 	observer.log(ctx, event)

@@ -153,14 +153,12 @@ func TestClientPolicyConfigDrivesTimeoutAndOwnedTransportPool(t *testing.T) {
 	}
 }
 
-func TestLegacyTimeoutOverridesPolicyAndOverrideInputsAreSnapshotted(t *testing.T) {
+func TestClientPolicyOverrideInputsAreSnapshotted(t *testing.T) {
 	t.Parallel()
 
 	policyTimeout := 9 * time.Second
-	legacyTimeout := 2 * time.Second
 	client, err := New(Config{
-		Policy:  PolicyOverrides{OperationTimeout: &policyTimeout},
-		Timeout: legacyTimeout,
+		Policy: PolicyOverrides{OperationTimeout: &policyTimeout},
 		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: http.StatusNoContent, Header: make(http.Header),
@@ -169,15 +167,15 @@ func TestLegacyTimeoutOverridesPolicyAndOverrideInputsAreSnapshotted(t *testing.
 		}),
 	})
 	if err != nil {
-		t.Fatalf("construct legacy-timeout client: %v", err)
+		t.Fatalf("construct client: %v", err)
 	}
 	t.Cleanup(func() { _ = client.Close() })
 	policyTimeout = time.Hour
 	request, _ := http.NewRequest(http.MethodGet, "https://example.test", nil)
 	resolved, err := client.InspectPolicy(request)
-	if err != nil || resolved.Values().OperationTimeout != legacyTimeout ||
+	if err != nil || resolved.Values().OperationTimeout != 9*time.Second ||
 		resolved.Provenance(PolicyFieldOperationTimeout) != PolicySourceClient {
-		t.Fatalf("legacy timeout policy = %#v, %v", resolved, err)
+		t.Fatalf("client timeout policy = %#v, %v", resolved, err)
 	}
 	if _, err := client.InspectPolicy(nil); !errors.Is(err, ErrNilRequest) {
 		t.Fatalf("nil inspection error = %v", err)

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	httpclient "github.com/faustbrian/go-http-client/v2"
+	httpclient "github.com/faustbrian/go-http-client/v3"
 )
 
 func TestClientCredentialsAggregateInputAdmission(t *testing.T) {
