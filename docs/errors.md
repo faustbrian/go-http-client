@@ -12,7 +12,7 @@ The principal families are:
 | --- | --- |
 | Client and transport | `ErrClientClosed`, `ErrNilRequest`, `TransportError` |
 | Middleware | `ErrInvalidMiddlewareResult`, `MiddlewareExecutionError`, `MiddlewarePanicError` |
-| Admission and resilience | `RateLimitError`, `CircuitBreakerError`, `go-retry/v3` terminal errors |
+| Admission and resilience | `RateLimitError`, `CircuitBreakerError`, `ErrRetryClockRegressed`, `go-retry/v3` terminal errors |
 | HTTP status | `ErrHTTPStatus`, `HTTPStatusError` |
 | Decode and lifecycle | `ResponseDecodeError`, `ErrResponseDecoderPanic`, `ResponseBodyError`, `ResponseLimitError`, `ResponseLengthError` |
 | Streaming and files | `TransferError`, `ErrTransferProgressPanic`, `RangeError`, `CompressionError`, `FileTransferError` |

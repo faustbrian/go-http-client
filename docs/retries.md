@@ -117,9 +117,10 @@ custom `RetryClock.Wait` that fails without a context error stops with a
 completed wait also matches `context.DeadlineExceeded` through `errors.Is`. Under
 the default policy one found before the wait does not, but a custom policy that
 retries a deadline failure carries that failure, so test for `BudgetError`
-before treating a deadline as the caller's own. `ContextError.Outcome()`
-describes whether this middleware dispatched a retry, not whether the server
-applied the request. None renders transport text,
+before treating a deadline as the caller's own. `ContextError.Outcome()` is
+`OutcomeNotDispatched` when cancellation came before the first exchange and
+`OutcomeKnown` once at least one exchange completed; neither says whether the
+server applied the request. None renders transport text,
 URLs, headers, keys, or payloads. A failed exchange that policy does not retry
 returns its original error, and non-retryable HTTP responses remain ordinary
 `http.Response` values.

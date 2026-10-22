@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `RetryOptions.Random` to inject the `go-retry/v3` random source used to
   jitter exponential delays.
+- Add `ErrRetryClockRegressed` for a custom retry clock that moves backwards.
 
 ### Removed
 

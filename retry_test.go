@@ -1164,7 +1164,7 @@ func TestRetryCancellationStopsStalledDrainAndWait(t *testing.T) {
 			// a cancelled wait is a context stop.
 			var status interface{ StatusCode() int }
 			if path == "/stalled" && (!errors.As(err, new(*goretry.PermanentError)) || !errors.As(err, &status) || status.StatusCode() != http.StatusServiceUnavailable) ||
-				path == "/hint" && !errors.As(err, new(*goretry.ContextError)) {
+				path == "/hint" && !contextErrorOutcome(err, goretry.OutcomeKnown) {
 				t.Fatalf("%s cancellation error = %v", path, err)
 			}
 		})
@@ -1446,4 +1446,10 @@ func closeTestClient(t *testing.T, client *Client) {
 	if err := client.Close(); err != nil {
 		t.Errorf("close client: %v", err)
 	}
+}
+
+func contextErrorOutcome(err error, want goretry.Outcome) bool {
+	var contextErr *goretry.ContextError
+
+	return errors.As(err, &contextErr) && contextErr.Outcome() == want
 }

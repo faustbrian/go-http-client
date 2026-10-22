@@ -243,8 +243,8 @@ func executeRetry(request *http.Request, next Next, options resolvedRetryOptions
 		current := request
 		if attempt > 0 {
 			// go-retry clamps a negative elapsed time to zero, so a custom clock
-			// that moves backwards would never exhaust MaximumElapsed. Stop, as
-			// v2 did, instead of replaying.
+			// that moves backwards would never exhaust MaximumElapsed. Stop before
+			// replaying; v2 checked only before waiting and replayed once here.
 			if options.clock.Now().Before(start) {
 				return retry.AttemptResult[*http.Response]{Outcome: retry.OutcomeKnown},
 					retry.Permanent(errors.Join(lastStatus, ErrRetryClockRegressed))
