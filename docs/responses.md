@@ -55,7 +55,7 @@ helpers below when their stricter representation policy is appropriate.
 The default bound is 8 MiB and explicit bounds may not exceed 1 GiB. An
 exactly-at-limit body succeeds; overflow uses a one-byte probe and returns
 `ResponseLimitError`, matching `ErrResponseBodyLimit`. Read and limit failures
-return no partial body. Invalid options still close an admitted nonnil body.
+return no partial body. Invalid options still close an admitted non-nil body.
 The bound limits payload bytes, not the extra memory used by buffer growth.
 The caller must not concurrently mutate the response or its body.
 
