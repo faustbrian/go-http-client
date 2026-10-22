@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `MaximumRetryAfter`, and explicit delays are no longer jittered.
 - Return the original failure for exchanges that retry policy does not repeat.
 - Report failed exchanges that policy does not retry, and replay,
-  non-replayable-body and response-cleanup stops, with the `failure` or
+  non-replayable-body, response-cleanup and custom `RetryClock.Wait` stops, with the `failure` or
   `transport_error` telemetry outcome instead of `retry_exhausted`; attempt-limit and elapsed-budget stops keep `retry_exhausted`, which
   now takes precedence over cancellation, rate-limit and circuit outcomes for
   those errors.

@@ -370,6 +370,9 @@ func replayRequest(original *http.Request) (*http.Request, error) {
 
 		return replayed, nil
 	}
+	if original.GetBody == nil {
+		return nil, &BodyOpenError{Cause: ErrInvalidBody}
+	}
 	body, err := original.GetBody()
 	if err != nil {
 		return nil, &BodyOpenError{Cause: err}

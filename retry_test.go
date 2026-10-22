@@ -419,8 +419,8 @@ func TestRetryAfterSelectsDelayWithinCaps(t *testing.T) {
 		header                 string
 		want                   time.Duration
 	}{
-		{name: "beyond 31-bit seconds capped", backoff: 4 * time.Second, retryAfterCap: 4 * time.Second, random: maxRetryRandom{}, header: "2147483648", want: 4 * time.Second},
-		{name: "beyond uint64 capped", backoff: 4 * time.Second, retryAfterCap: 4 * time.Second, random: maxRetryRandom{}, header: "18446744073709551616", want: 4 * time.Second},
+		{name: "beyond 31-bit seconds capped", backoff: 4 * time.Second, retryAfterCap: 4 * time.Second, random: zeroRetryRandom{}, header: "2147483648", want: 4 * time.Second},
+		{name: "beyond uint64 capped", backoff: 4 * time.Second, retryAfterCap: 4 * time.Second, random: zeroRetryRandom{}, header: "18446744073709551616", want: 4 * time.Second},
 		{name: "128-byte padded value parsed", backoff: 500 * time.Millisecond, retryAfterCap: 30 * time.Second, random: maxRetryRandom{}, header: strings.Repeat(" ", 127) + "1", want: time.Second},
 		{name: "129-byte padded value absent", backoff: 500 * time.Millisecond, retryAfterCap: 30 * time.Second, random: maxRetryRandom{}, header: strings.Repeat(" ", 128) + "1", want: 500 * time.Millisecond},
 		{name: "malformed value absent", backoff: 500 * time.Millisecond, retryAfterCap: 30 * time.Second, random: maxRetryRandom{}, header: "soon", want: 500 * time.Millisecond},
@@ -871,6 +871,25 @@ func TestRetryDrainsAndClosesBeforeWaiting(t *testing.T) {
 	var exhausted *goretry.ExhaustedError
 	if response != nil || !errors.As(err, &exhausted) || !closed {
 		t.Fatalf("final exhausted response = %v, err %v, closed %t", response, err, closed)
+	}
+}
+
+func TestRetryClockWaitFailureStopsPermanently(t *testing.T) {
+	t.Parallel()
+
+	waitFailure := errors.New("scheduler stopped")
+	clock := &retryTestClock{now: time.Unix(1_700_000_000, 0)}
+	clock.wait = func(context.Context, time.Duration) error { return waitFailure }
+	_, calls, err := runRetry(t, RetryOptions{MaximumAttempts: 3, Clock: clock, Random: zeroRetryRandom{}}, func(int) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
+	})
+	var permanent *goretry.PermanentError
+	var status interface{ StatusCode() int }
+	if calls != 1 || !errors.As(err, &permanent) || !errors.Is(err, waitFailure) || errors.As(err, &status) {
+		t.Fatalf("wait failure = %v, calls %d", err, calls)
+	}
+	if outcome := telemetryOutcome(nil, err); outcome != TelemetryOutcomeFailure {
+		t.Fatalf("wait failure telemetry = %q", outcome)
 	}
 }
 
