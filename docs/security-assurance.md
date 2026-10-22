@@ -69,7 +69,7 @@ strict replay, bounded recording, persistence, migration, and fixture expiry;
 all examples, docs, scripts, fuzz targets, benchmarks, and CI/release gates.
 
 Public extension ports were reviewed at their invocation seams: transports,
-body openers, request editors and signers, token sources, retry clocks/jitter
+body openers, request editors and signers, token sources, retry clocks/random sources
 and policies, limiters and observers, breakers/classifiers, decoders,
 redactors/mappers, progress observers, pagination fetch/key functions, pool
 selectors/sources/keys/executors, cache stores/keys/schedulers, scope values,

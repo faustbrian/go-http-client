@@ -226,6 +226,11 @@ func TestTelemetryOutcomeAndCacheCategoriesAreBounded(t *testing.T) {
 		{"rate wait", nil, ErrRateLimitWaitExceeded, TelemetryOutcomeRateLimited, "", TelemetryCacheNone},
 		{"circuit", nil, ErrCircuitRejected, TelemetryOutcomeCircuitOpen, "", TelemetryCacheNone},
 		{"retry", nil, &retry.ExhaustedError{}, TelemetryOutcomeRetryFailure, "", TelemetryCacheNone},
+		{"retry before rate limit", nil, errors.Join(&retry.ExhaustedError{}, ErrRateLimitWaitExceeded), TelemetryOutcomeRetryFailure, "", TelemetryCacheNone},
+		{"retry before circuit", nil, errors.Join(&retry.ExhaustedError{}, ErrCircuitRejected), TelemetryOutcomeRetryFailure, "", TelemetryCacheNone},
+		{"budget before cancellation", nil, errors.Join(&retry.BudgetError{}, context.Canceled), TelemetryOutcomeRetryFailure, "", TelemetryCacheNone},
+		{"replay stop", nil, retry.Permanent(&BodyOpenError{Cause: ErrInvalidBody}), TelemetryOutcomeFailure, "", TelemetryCacheNone},
+		{"transport stop", nil, retry.Permanent(transportFailure), TelemetryOutcomeTransport, "", TelemetryCacheNone},
 		{"transport", nil, transportFailure, TelemetryOutcomeTransport, "", TelemetryCacheNone},
 		{"failure", nil, errors.New("private vendor detail"), TelemetryOutcomeFailure, "", TelemetryCacheNone},
 	} {

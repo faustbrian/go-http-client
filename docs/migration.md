@@ -33,7 +33,12 @@ Behavior changes to review when adopting v3:
   an exhaustion error. Non-retryable responses are returned unchanged as
   before.
 - `MaximumElapsed` stops retries between exchanges; it is still not a deadline
-  for the exchange itself.
+  for the exchange itself. A wait that ends at or past the budget now stops
+  without another exchange, and that `BudgetError` also matches
+  `context.DeadlineExceeded`; check `BudgetError` first.
+- The default jitter source is one generator per middleware seeded from
+  `crypto/rand`, instead of a `crypto/rand` read per delay. Inject
+  `RetryOptions.Random` to control it.
 - Telemetry: failed exchanges that policy does not retry, such as an unsafe
   `POST` without idempotency proof, and replay, non-replayable-body,
   response-cleanup and custom `RetryClock.Wait` stops report `failure` or `transport_error` instead of

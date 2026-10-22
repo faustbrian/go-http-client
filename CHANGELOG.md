@@ -37,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   those errors.
 - Make `go-retry/v3` types (`retry.Random` and its terminal errors) part of the
   public contract.
+- Stop without another exchange when a wait ends at or past `MaximumElapsed`;
+  that `BudgetError` also matches `context.DeadlineExceeded`.
+- Draw jitter from one generator per middleware seeded from `crypto/rand`
+  instead of reading `crypto/rand` for every delay.
 
 ### Security
 

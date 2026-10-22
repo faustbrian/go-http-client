@@ -784,6 +784,11 @@ func TestRetryTerminalErrorsReportOutcomeAndStatus(t *testing.T) {
 	if !errors.As(err, &budget) || budget.Kind != goretry.BudgetElapsed {
 		t.Fatalf("budget stop = %v", err)
 	}
+	// A budget found exhausted after a completed wait carries the deadline cause;
+	// callers must test BudgetError before context.DeadlineExceeded.
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("post-wait budget stop = %v, want DeadlineExceeded identity", err)
+	}
 	history := budget.Result().History
 	if len(history) == 0 || !errors.As(history[len(history)-1].Err, &status) || status.StatusCode() != http.StatusServiceUnavailable {
 		t.Fatalf("last status is not in the budget history: %+v", history)
@@ -832,6 +837,40 @@ func TestRetryReplayFailuresStopWithoutAnotherExchange(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("body opener removed by inner middleware", func(t *testing.T) {
+		t.Parallel()
+		middleware, err := NewRetryMiddleware(RetryOptions{Name: "retry", MaximumAttempts: 3, Clock: &retryTestClock{now: time.Unix(1_700_000_000, 0)}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		dropOpener, err := NewTransportMiddleware(MiddlewareOptions{
+			Name: "drop-opener", Scope: ScopeOperation, Layer: MiddlewareClient, Priority: -400,
+		}, func(request *http.Request, next Next) (*http.Response, error) {
+			request.GetBody = nil
+
+			return next(request)
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		calls := 0
+		client, err := New(Config{Middleware: []Middleware{middleware, dropOpener}, Transport: TransportFunc(func(*http.Request) (*http.Response, error) {
+			calls++
+			return nil, errors.New("temporary")
+		})})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer closeTestClient(t, client)
+		request, _ := http.NewRequest(http.MethodPut, "https://api.example.test", strings.NewReader("body"))
+		_, err = client.Do(request)
+		var opened *BodyOpenError
+		var panicked *MiddlewarePanicError
+		if calls != 1 || !errors.As(err, &opened) || !errors.Is(err, ErrInvalidBody) || errors.As(err, &panicked) {
+			t.Fatalf("calls %d err %v", calls, err)
+		}
+	})
 }
 
 func TestRetryDrainsAndClosesBeforeWaiting(t *testing.T) {

@@ -105,7 +105,10 @@ elapsed time. For attempt-limit, replay and body-lifecycle stops the last HTTP
 status is reachable through `errors.As` to a value with `StatusCode() int`; for
 budget and cancellation stops it is in the last `Result().History` entry. A
 custom `RetryClock.Wait` that fails without a context error stops with a
-`PermanentError` that does not carry the status. None renders transport text,
+`PermanentError` that does not carry the status. A `BudgetError` found after a
+completed wait also matches `context.DeadlineExceeded` through `errors.Is`, while
+one found before the wait does not, so test for `BudgetError` before treating a
+deadline as the caller's own. None renders transport text,
 URLs, headers, keys, or payloads. A failed exchange that policy does not retry
 returns its original error, and non-retryable HTTP responses remain ordinary
 `http.Response` values.
