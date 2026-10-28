@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   ci:
-    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@09b43f49385650c44dd4151a12b0877ca6b48a88 # v2.5.1
+    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@ef9ae418c61b6b92d8d93c03d71694031ec47ed8 # v2.5.2
     with:
       tooling_sha: 09b43f49385650c44dd4151a12b0877ca6b48a88
       source_bootstrap: false
@@ -113,7 +113,7 @@ jobs:
           exit "$coverage_exit"
       - name: Upload bounded diagnostic coordinates
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: exact-root-coverage-diagnostic
           path: ${{ env.TASK_ROOT }}/report/coverage.txt

@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   assurance:
-    uses: faustbrian/go-library-tools/.github/workflows/library-assurance.yml@df42d70bd91cc947c93265f237d5387246bac88e
+    uses: faustbrian/go-library-tools/.github/workflows/library-assurance.yml@ef9ae418c61b6b92d8d93c03d71694031ec47ed8
     with:
       tooling_sha: df42d70bd91cc947c93265f237d5387246bac88e
       fuzz_target: ${{ inputs.fuzz_target || '' }}
