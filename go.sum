@@ -10,8 +10,8 @@ github.com/faustbrian/go-circuit-breaker v1.0.1 h1:lClA7sa8CItC6KRAlQxR3nuqaq8dx
 github.com/faustbrian/go-circuit-breaker v1.0.1/go.mod h1:Mf7ob9yMmEnsrw7t2mnYkgmRqyXAgPiH3eovU3IJTyQ=
 github.com/faustbrian/go-resilience/v2 v2.0.0 h1:QobjogckeYjQlkFs3ajWTB14SDSJrHqJiT9JQgkX9RI=
 github.com/faustbrian/go-resilience/v2 v2.0.0/go.mod h1:Xiz5riZS/zpYEZP8hph1p94W4oWJ5YpKDSMFXa97szM=
-github.com/faustbrian/go-retry/v3 v3.0.0 h1:PEgqGxtzghfU0d5B2eP8r1BuF0WyP3fR4m1kLArMKRE=
-github.com/faustbrian/go-retry/v3 v3.0.0/go.mod h1:2JVcWQV6Ju2l+uWEB/9/1zYIfGIn1uIsATiCTNm91HU=
+github.com/faustbrian/go-retry/v3 v3.1.0 h1:FLUUuuip2OK5lp0f99A9M8HZb7gDrqnMoXA0u3XekR8=
+github.com/faustbrian/go-retry/v3 v3.1.0/go.mod h1:2JVcWQV6Ju2l+uWEB/9/1zYIfGIn1uIsATiCTNm91HU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
