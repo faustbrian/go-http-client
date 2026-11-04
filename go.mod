@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/faustbrian/go-circuit-breaker v1.0.1
-	github.com/faustbrian/go-retry/v3 v3.0.0
+	github.com/faustbrian/go-retry/v3 v3.1.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.60.0
 	golang.org/x/oauth2 v0.37.0
