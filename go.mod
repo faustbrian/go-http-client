@@ -7,7 +7,7 @@ require (
 	github.com/faustbrian/go-retry/v3 v3.0.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/net v0.60.0
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 )
 
 require github.com/faustbrian/go-resilience/v2 v2.0.0 // indirect
